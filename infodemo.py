@@ -11,8 +11,7 @@ def import_data(filename):
     output = json.loads(content)
     return output
 
-@st.cache_data
-def cache_data():
+def fetch_data():
     st.session_state.occupationdata = import_data("valid_occupations_with_info.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
@@ -25,9 +24,8 @@ def show_initial_information():
     st.markdown(f"<p style='font-size:12px;'>{initial_text}</p>", unsafe_allow_html=True)
 
 def initiate_session_state():
-    if "chosen_occupation" not in st.session_state:
+    if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
-        st.session_state.chosen_occupation = ""
         st.session_state.adwords_occupation = {}
 
 def create_tree(field, group, occupation):
@@ -91,8 +89,7 @@ def create_wordcloud(words):
     st.pyplot(plt)
 
 
-def post_selected_occupation():
-    id_occupation = st.session_state.chosen_occupation
+def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
 
     occupation_name = info["preferred_label"]
@@ -245,12 +242,11 @@ def choose_occupation_name():
     if selected_occupation_name:
         plt.close("all")
         id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
-        st.session_state.chosen_occupation = id_selected_occupation
-        post_selected_occupation()
+        post_selected_occupation(id_selected_occupation)
 
 def main ():
     initiate_session_state()
-    cache_data()
+    fetch_data()
     choose_occupation_name()
 
 if __name__ == '__main__':
