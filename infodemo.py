@@ -12,7 +12,7 @@ def import_data(filename):
     return output
 
 def fetch_data():
-    st.session_state.occupationdata = import_data("valid_occupations_with_info.json")
+    st.session_state.occupationdata = import_data("valid_occupations_with_info_25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("wordcloud_data_v25.json")
@@ -28,12 +28,35 @@ def initiate_session_state():
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
 
-def create_tree(field, group, occupation):
+def create_tree(field, group, occupation, barometer, bold):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
+    LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     strings = [f"{field}"]
-    strings.append(f"{SHORT_ELBOW}  {group}")
-    strings.append(f"{SPACE_PREFIX}{SHORT_ELBOW}  {occupation}")
+    if barometer:
+        barometer_name = barometer[0]
+        if bold == "barometer":
+            barometer_name = f"<strong>{barometer_name}</strong>"
+    if bold == "occupation":
+        occupation = f"<strong>{occupation}</strong>"
+    elif bold == "group":
+        group = f"<strong>{group}</strong>"
+    if barometer:
+        if barometer[1] == True:
+            strings.append(f"{SHORT_ELBOW}  {barometer_name}")
+            strings.append(f"{SPACE_PREFIX}{SHORT_ELBOW}  {group}")
+            strings.append(f"{SPACE_PREFIX}{SPACE_PREFIX}{SHORT_ELBOW}  {occupation}")
+        elif barometer[2] == True:
+            strings.append(f"{SHORT_ELBOW}  {group}")
+            strings.append(f"{SPACE_PREFIX}{SHORT_ELBOW}  {barometer_name}")
+            strings.append(f"{SPACE_PREFIX}{SPACE_PREFIX}{SHORT_ELBOW}  {occupation}")
+        else:
+            strings.append(f"{SHORT_ELBOW}  {group}")
+            strings.append(f"{LONG_PREFIX} {barometer_name}")
+            strings.append(f"{LONG_PREFIX}{SHORT_ELBOW}  {occupation}")         
+    else:
+        strings.append(f"{SHORT_ELBOW}  {group}")
+        strings.append(f"{SPACE_PREFIX}{SHORT_ELBOW}  {occupation}")
     string = "<br />".join(strings)
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
@@ -95,8 +118,11 @@ def post_selected_occupation(id_occupation):
     occupation_name = info["preferred_label"]
     occupation_group = info["occupation_group"]
     occupation_field = info["occupation_field"]
+    try:
+        barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
+    except:
+        barometer = None
     
-
     description = info["description"]
     license = info["license"]
     skills = info["skill"]
@@ -111,11 +137,14 @@ def post_selected_occupation(id_occupation):
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"<strong>{occupation_name} (yrkesbenämning)</strong>"
-        tree = create_tree(field_string, group_string, occupation_string)
+        occupation_string = f"{occupation_name} (yrkesbenämning)"
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
         st.markdown(tree, unsafe_allow_html = True)
 
-        st.header(f"Yrkesbeskrivning {occupation_name}")
+        st.subheader(f"Yrkesbeskrivning {occupation_name}")
 
         st.write(description)
 
@@ -146,21 +175,25 @@ def post_selected_occupation(id_occupation):
 
         with col2:
             type = "yrkesbenämning"
-            st.markdown(f"<strong>Relaterade annonsord {type}</strong>", unsafe_allow_html = True)
+            st.markdown(f"<strong>Annonsord {type}:</strong>", unsafe_allow_html = True)
             create_wordcloud(st.session_state.adwords_occupation)
 
-        educational_group = info["education"]["group_name"]
-        educational_backgrounds = info["education"]["educations"]
+        try:
+            educational_group = info["education"]["group_name"]
+            educational_backgrounds = info["education"]["educations"]
 
-        st.subheader(f"Utbildningsbakgrund {educational_group}")
+            st.subheader(f"Utbildningsbakgrund {educational_group}")
 
-        if educational_group:
-            if len(educational_backgrounds) <= 2:
-                educational_string = create_string(educational_backgrounds, None)
-            else:
-                educational_string = create_string(educational_backgrounds, None)
+            if educational_group:
+                if len(educational_backgrounds) <= 2:
+                    educational_string = create_string(educational_backgrounds, None)
+                else:
+                    educational_string = create_string(educational_backgrounds, None)
+            
+                st.markdown(educational_string, unsafe_allow_html = True)
         
-            st.markdown(educational_string, unsafe_allow_html = True)
+        except:
+            pass
 
         #Här borde också AUB finnas med
 
@@ -181,56 +214,74 @@ def post_selected_occupation(id_occupation):
      
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
-        group_string = f"<strong>{occupation_group} (yrkesgrupp)</strong>"
+        group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
-        tree = create_tree(field_string, group_string, occupation_string)
+
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "barometer")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+
         st.markdown(tree, unsafe_allow_html = True)
 
-        st.header(f"Jobbmöjligheter {occupation_group}")
+        if barometer:
+            st.subheader(f"Jobbmöjligheter {barometer[0]}")
+            st.image("prognos.jpg")
 
-        st.image("prognos.jpg")
+        else:
+            st.subheader(f"Ingen tillgänglig prognos för {occupation_name}")
 
 
     with tab3:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"<strong>{occupation_name} (yrkesbenämning)</strong>"
-        tree = create_tree(field_string, group_string, occupation_string)
+        occupation_string = f"{occupation_name} (yrkesbenämning)"
+
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+
         st.markdown(tree, unsafe_allow_html = True)
 
-        st.header(f"Närliggande yrken {occupation_name}")
 
-        similar = info["similar_occupations"]
+        try:
+            similar = info["similar_occupations"]
+            st.subheader(f"Närliggande yrken {occupation_name}")
 
-        col1, col2 = st.columns(2)
-        number_of_similar = 0
+            col1, col2 = st.columns(2)
+            number_of_similar = 0
 
-        for key, value in similar.items():
-            if (number_of_similar % 2) == 0:
-                with col1:
-                    with st.popover(key):
-                        info_similar = st.session_state.occupationdata.get(value)
-                        name_similar = info_similar["preferred_label"]
-                        adwords_similar = st.session_state.adwords.get(value)
-                        
-                        venn = create_venn(occupation_name, name_similar, adwords_similar)
-                        st.pyplot(venn)
+            for key, value in similar.items():
+                if (number_of_similar % 2) == 0:
+                    with col1:
+                        with st.popover(key):
+                            info_similar = st.session_state.occupationdata.get(value)
+                            name_similar = info_similar["preferred_label"]
+                            adwords_similar = st.session_state.adwords.get(value)
+                            
+                            venn = create_venn(occupation_name, name_similar, adwords_similar)
+                            st.pyplot(venn)
 
-                        description_similar = info_similar["description"]
-                        st.write(description_similar)
-            else:
-                with col2:
-                    with st.popover(key):
-                        info_similar = st.session_state.occupationdata.get(value)
-                        name_similar = info_similar["preferred_label"]
-                        adwords_similar = st.session_state.adwords.get(value)
+                            description_similar = info_similar["description"]
+                            st.write(description_similar)
+                else:
+                    with col2:
+                        with st.popover(key):
+                            info_similar = st.session_state.occupationdata.get(value)
+                            name_similar = info_similar["preferred_label"]
+                            adwords_similar = st.session_state.adwords.get(value)
 
-                        venn = create_venn(occupation_name, name_similar, adwords_similar)
-                        st.pyplot(venn)
+                            venn = create_venn(occupation_name, name_similar, adwords_similar)
+                            st.pyplot(venn)
 
-                        description_similar = info_similar["description"]
-                        st.write(description_similar)
-            number_of_similar += 1
+                            description_similar = info_similar["description"]
+                            st.write(description_similar)
+                number_of_similar += 1
+
+        except:
+
+            st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken för {occupation_name}")
 
 def choose_occupation_name():
     show_initial_information()
