@@ -31,7 +31,7 @@ def initiate_session_state():
 def create_tree(field, group, occupation, barometer, bold):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
-    LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     strings = [f"{field}"]
     if barometer:
         barometer_name = barometer[0]
