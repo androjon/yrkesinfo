@@ -3,6 +3,8 @@ import json
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
+import operator
+import math
 
 @st.cache_data
 def import_data(filename):
@@ -16,6 +18,11 @@ def fetch_data():
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("wordcloud_data_v25.json")
+    st.session_state.locations_id = import_data("ortnamn_id.json")
+    st.session_state.id_locations = import_data("id_ortnamn.json")
+    st.session_state.valid_locations = list(st.session_state.locations_id.keys())
+    st.session_state.geodata = import_data("tatorter_distance.json")
+    st.session_state_ad_data = import_data("yb_ort_annonser_nu_2024.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -31,7 +38,7 @@ def initiate_session_state():
 def create_tree(field, group, occupation, barometer, bold):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
-    LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+    LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     strings = [f"{field}"]
     if barometer:
         barometer_name = barometer[0]
@@ -71,6 +78,18 @@ def create_string(skills, start):
     string = "<br />".join(strings)
     skill_string = f"<p style='font-size:16px;'>{string}</p>"
     return skill_string
+
+def create_maxlist(data, max):
+    output = []
+    alla_nu = 0
+    alla_historiskt= 0
+    for i in data:
+        if i["avstånd"] <= max:
+            alla_nu += i["nu"]
+            alla_historiskt += i["historiskt"]
+            annonstext = f"{i['avstånd']} kilometer - Annonser {i['nu']}({i['historiskt']})"
+            output.append(f"{i['ort']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
+    return output, alla_nu, alla_historiskt
 
 def create_venn_data(a_name, a_words, b_name, b_words):
     output = {}
@@ -117,6 +136,7 @@ def post_selected_occupation(id_occupation):
 
     occupation_name = info["preferred_label"]
     occupation_group = info["occupation_group"]
+    occupation_group_id = info["occupation_group_id"]
     occupation_field = info["occupation_field"]
     try:
         barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
@@ -130,9 +150,7 @@ def post_selected_occupation(id_occupation):
 
     st.session_state.adwords_occupation = st.session_state.adwords.get(id_occupation)
 
-    tab1, tab2, tab3 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Närliggande yrken"])
-
-    #En tab för Prognos + antal annonser
+    tab1, tab2, tab3, tab4 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Närliggande orter", "Närliggande yrken"])
 
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -217,6 +235,9 @@ def post_selected_occupation(id_occupation):
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
+
+        #En fil för barometeryrke - prognoser
+
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, "barometer")
         else:
@@ -225,14 +246,93 @@ def post_selected_occupation(id_occupation):
         st.markdown(tree, unsafe_allow_html = True)
 
         if barometer:
-            st.subheader(f"Jobbmöjligheter {barometer[0]}")
-            st.image("prognos.jpg")
+            st.image("prognos.png")
 
         else:
-            st.subheader(f"Ingen tillgänglig prognos för {occupation_name}")
-
+            st.write("Ingen tillgänglig prognos")
 
     with tab3:
+        field_string = f"{occupation_field} (yrkesområde)"
+        group_string = f"{occupation_group} (yrkesgrupp)"
+        occupation_string = f"{occupation_name} (yrkesbenämning)"
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+            
+        st.markdown(tree, unsafe_allow_html = True)
+        ads_occupation = st.session_state_ad_data.get(id_occupation)
+
+        valid_locations = sorted(st.session_state.valid_locations)
+        selected_location = st.selectbox(
+            "Välj en ort",
+            (valid_locations), placeholder = "", index = None)
+
+        if selected_location:
+            id_selected_location = st.session_state.locations_id.get(selected_location) 
+            other_locations = st.session_state.geodata.get(id_selected_location)
+
+            locations_with_distance = []
+
+            ads_selected = ads_occupation.get(id_selected_location)
+            if not ads_selected:
+                ads_selected = [0, 0]
+            nu_grund = ads_selected[0]
+            historiskt_grund = ads_selected[1]
+            
+            locations_with_distance.append({
+                "ort": selected_location,
+                "nu": ads_selected[0],
+                "historiskt": ads_selected[1],
+                "avstånd": 0})
+
+            for location_id, distance in other_locations.items():
+                ads_location = ads_occupation.get(location_id)
+                if ads_location:
+                    location_name = st.session_state.id_locations.get(location_id)
+                    if location_name:
+                        locations_with_distance.append({
+                            "ort": location_name,
+                            "nu": ads_location[0],
+                            "historiskt": ads_location[1],
+                            "avstånd": distance})
+                        
+            locations_with_ads = sorted(locations_with_distance, 
+                                        key = operator.itemgetter("avstånd"),
+                                        reverse = False)
+            
+            col1, col2 = st.columns(2)
+
+            with col1:
+                avstånd = st.slider("Hur långt kan du tänka dig att resa i kilometer?", 0, 70, 20)
+
+            with col2:
+                a, b, c = st.columns(3)
+
+            locations_with_ads_max, alla_nu, alla_historiskt = create_maxlist(locations_with_ads, avstånd)
+
+            skillnad_nu = alla_nu - nu_grund
+            skillnad_historiska = alla_historiskt - historiskt_grund
+
+            b.metric(label = "Platsbanken", value = alla_nu, delta = skillnad_nu)
+            c.metric(label = "2024", value = alla_historiskt, delta = skillnad_historiska)
+
+            antal_orter = len(locations_with_ads_max)
+            n = math.ceil(antal_orter / 2)
+
+            locations_1 = locations_with_ads_max[:n]
+            locations_2 = locations_with_ads_max[n:]
+
+            geo_string1 = create_string(locations_1, None)
+            geo_string2 = create_string(locations_2, None)
+
+            with col1:
+                st.markdown(geo_string1, unsafe_allow_html = True)
+
+            with col2:
+                st.markdown(geo_string2, unsafe_allow_html = True)
+
+    with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
