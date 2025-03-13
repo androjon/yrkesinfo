@@ -14,7 +14,7 @@ def import_data(filename):
     return output
 
 def fetch_data():
-    st.session_state.occupationdata = import_data("valid_occupations_with_info_25.json")
+    st.session_state.occupationdata = import_data("valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("wordcloud_data_v25.json")
