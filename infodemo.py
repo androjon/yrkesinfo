@@ -27,8 +27,8 @@ def fetch_data():
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
     st.title("Yrkesinformation")
-    initial_text = "Ett försöka att erbjuda information/stöd för arbetsförmedlare när det kommer till att välja <em>rätt</em> yrke och underlätta relaterade informerade bedömningar och beslut när det kommer till GYR-Y (Geografisk och yrkesmässig rörlighet - Yrke). Informationen är taxonomi-, statistik- och annonsdriven."
-    st.markdown(f"<p style='font-size:10px;'>{initial_text}</p>", unsafe_allow_html=True)
+    initial_text = "Ett försöka att erbjuda information/stöd för arbetsförmedlare när det kommer till att välja <em>rätt</em> yrke och underlätta relaterade informerade bedömningar och beslut när det kommer till GYR-Y (Geografisk och yrkesmässig rörlighet - Yrke). Informationen är taxonomi-, statistik- och annonsdriven och berör 1140 yrkesbenämningar. Det är dessa yrkesbenämningar som bedöms ha tillräckligt annonsunderlag för pålitliga beräkningar."
+    st.markdown(f"<p style='font-size:12px;'>{initial_text}</p>", unsafe_allow_html=True)
 
 def initiate_session_state():
     if "valid_occupations" not in st.session_state:
@@ -157,6 +157,11 @@ def post_selected_occupation(id_occupation):
     skills = info["skill"]
     potential_skills = info["potential_skill"]
 
+    try:
+        yrkessamling = info["yrkessamling"]
+    except:
+        yrkessamling = None
+
     st.session_state.adwords_occupation = st.session_state.adwords.get(id_occupation)
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande orter", "Närliggande yrken"])
@@ -164,7 +169,15 @@ def post_selected_occupation(id_occupation):
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"{occupation_name} (yrkesbenämning)"
+
+        if yrkessamling == "Kultur":
+            occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Kultur och media"
+            #X sorteras in under Arbetsförmedlingen Kultur och media
+        elif yrkessamling == "Sjöfart":
+            occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Sjöfart"
+            #X sorteras in under Arbetsförmedlingen Sjöfart
+        else:
+            occupation_string = f"{occupation_name} (yrkesbenämning)"
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
         else:
@@ -219,6 +232,10 @@ def post_selected_occupation(id_occupation):
             link2.link_button("Hitta yrken", hitta_yrken_uri, help = info_text_hitta_yrken, icon = ":material/link:")
         except:
             pass
+
+        text_dataunderlag_yrke = "<strong>Dataunderlag</strong><br />Yrkesbeskrivningar är hämtade från taxonomin i första hand. Saknas yrkesbeskrivning hämtas en från ett relaterat ESCO-yrke (European Skills, Competences and Occupations).<br />&emsp;&emsp;&emsp;Kompetensbegrepp som är kopplade i taxonomin till aktuell yrkesbenämning visas upp under kvalitetssäkrade kompetensbegrepp. Det förekommer också genererade kompetensbegrepp beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på de genererade begreppen varierar.<br />&emsp;&emsp;&emsp;Annonsord är hämtade från Historiska berikade annonser och viktade för relevans. Annonsorden är ord som ofta berör utbildnings-, kunskaps- eller erfarenhetskrav från arbetsgivare.<br />&emsp;&emsp;&emsp;Det finns alltid en länk till Jobtech Atlas där taxonomin kan närmare studeras. Finns det en koppling i Hitta yrken till aktuell yrkesbenämning finns en sådan länk också med."
+
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
      
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -240,6 +257,9 @@ def post_selected_occupation(id_occupation):
 
         else:
             st.write("Ingen tillgänglig prognos")
+
+        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst."
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
     with tab3:
         if barometer:
@@ -265,6 +285,9 @@ def post_selected_occupation(id_occupation):
         
         except:
             st.write("Ingen data tillgänglig")
+
+        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />?Regionala matchningsindikatorer?" 
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
         #Här borde också AUB finnas med
         
@@ -349,6 +372,9 @@ def post_selected_occupation(id_occupation):
             with col2:
                 st.markdown(geo_string2, unsafe_allow_html = True)
 
+        text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Närliggande orter baseras på avstånd mellan orter från öppen geodata, annonser i Platsbanken och Historiska berikade annonser knutna till dessa orter och vald yrkesbenämning." 
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
+
     with tab5:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
@@ -409,6 +435,9 @@ def post_selected_occupation(id_occupation):
         except:
 
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken för {occupation_name}")
+
+        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB). Om det närliggande yrket tillhör ett annat yrkesområde märks det upp med \U000021D2." 
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
 def choose_occupation_name():
     show_initial_information()
