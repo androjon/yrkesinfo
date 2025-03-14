@@ -159,7 +159,7 @@ def post_selected_occupation(id_occupation):
 
     st.session_state.adwords_occupation = st.session_state.adwords.get(id_occupation)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Närliggande orter", "Närliggande yrken"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande orter", "Närliggande yrken"])
 
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -205,25 +205,6 @@ def post_selected_occupation(id_occupation):
             st.markdown(f"<strong>Annonsord {type}:</strong>", unsafe_allow_html = True)
             create_wordcloud(st.session_state.adwords_occupation)
 
-        try:
-            educational_group = info["education"]["group_name"]
-            educational_backgrounds = info["education"]["educations"]
-
-            st.subheader(f"Utbildningsbakgrund {educational_group}")
-
-            if educational_group:
-                if len(educational_backgrounds) <= 2:
-                    educational_string = create_string(educational_backgrounds, None)
-                else:
-                    educational_string = create_string(educational_backgrounds, None)
-            
-                st.markdown(educational_string, unsafe_allow_html = True)
-        
-        except:
-            pass
-
-        #Här borde också AUB finnas med
-
         st.subheader("Länkar")
 
         atlas_uri = info["uri"]
@@ -261,6 +242,33 @@ def post_selected_occupation(id_occupation):
             st.write("Ingen tillgänglig prognos")
 
     with tab3:
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "group")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "group")
+
+        st.markdown(tree, unsafe_allow_html = True)
+
+        try:
+            educational_group = info["education"]["group_name"]
+            educational_backgrounds = info["education"]["educations"]
+
+            st.subheader(f"Utbildningsbakgrund {educational_group}")
+
+            if educational_group:
+                if len(educational_backgrounds) <= 2:
+                    educational_string = create_string(educational_backgrounds, None)
+                else:
+                    educational_string = create_string(educational_backgrounds, None)
+            
+                st.markdown(educational_string, unsafe_allow_html = True)
+        
+        except:
+            st.write("Ingen data tillgänglig")
+
+        #Här borde också AUB finnas med
+        
+    with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
@@ -341,7 +349,7 @@ def post_selected_occupation(id_occupation):
             with col2:
                 st.markdown(geo_string2, unsafe_allow_html = True)
 
-    with tab4:
+    with tab5:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
