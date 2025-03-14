@@ -91,21 +91,30 @@ def create_maxlist(data, max):
             output.append(f"{i['ort']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
     return output, alla_nu, alla_historiskt
 
-def create_venn_data(a_name, a_words, b_name, b_words):
+def create_venn_data(a_name, a_words, b_name, b_words, degree_of_overlap):
+    if degree_of_overlap == 1:
+        common_max = 14
+        only_in_max = 8
+    elif degree_of_overlap == 0.5:
+        common_max = 10
+        only_in_max = 10
+    elif degree_of_overlap == 0:
+        common_max = 6
+        only_in_max = 12
     output = {}
     common = [x for x in a_words if x in b_words]
-    a = common[0:10]
-    b = common[0:10]
+    a = common[0:common_max]
+    b = common[0:common_max]
     only_in_a = [x for x in a_words if x not in b_words]
-    a.extend(only_in_a[0:10])
+    a.extend(only_in_a[0:only_in_max])
     only_in_b = [x for x in b_words if x not in a_words]
-    b.extend(only_in_b[0:10])
+    b.extend(only_in_b[0:only_in_max])
     output[a_name] = a
     output[b_name] = b  
     return output
 
-def create_venn(name_choosen, name_similar, adwords_similar):
-    venn_data = create_venn_data(name_choosen, st.session_state.adwords_occupation, name_similar, adwords_similar)
+def create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap):
+    venn_data = create_venn_data(name_choosen, st.session_state.adwords_occupation, name_similar, adwords_similar, degree_of_overlap)
 
     titles = []
     words = []
@@ -259,7 +268,7 @@ def post_selected_occupation(id_occupation):
             tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
         else:
             tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
-            
+
         st.markdown(tree, unsafe_allow_html = True)
         ads_occupation = st.session_state_ad_data.get(id_occupation)
 
@@ -350,35 +359,45 @@ def post_selected_occupation(id_occupation):
             st.subheader(f"Närliggande yrken {occupation_name}")
 
             col1, col2 = st.columns(2)
+
+            len_similar = len(similar)
+            n = math.ceil(len_similar / 2)
+
+            similar_1 = {}
+            similar_2 = {}
+
             number_of_similar = 0
-
-            for key, value in similar.items():
-                if (number_of_similar % 2) == 0:
-                    with col1:
-                        with st.popover(key):
-                            info_similar = st.session_state.occupationdata.get(value)
-                            name_similar = info_similar["preferred_label"]
-                            adwords_similar = st.session_state.adwords.get(value)
-                            
-                            venn = create_venn(occupation_name, name_similar, adwords_similar)
-                            st.pyplot(venn)
-
-                            description_similar = info_similar["description"]
-                            st.write(description_similar)
+            for k, v in similar.items():
+                if number_of_similar <= n:
+                    similar_1[k] = v
                 else:
-                    with col2:
-                        with st.popover(key):
-                            info_similar = st.session_state.occupationdata.get(value)
-                            name_similar = info_similar["preferred_label"]
-                            adwords_similar = st.session_state.adwords.get(value)
-
-                            venn = create_venn(occupation_name, name_similar, adwords_similar)
-                            st.pyplot(venn)
-
-                            description_similar = info_similar["description"]
-                            st.write(description_similar)
+                    similar_2[k] = v
                 number_of_similar += 1
 
+            with col1:
+                for key, value in similar_1.items():
+                    with st.popover(key, use_container_width = True):
+                        info_similar = st.session_state.occupationdata.get(value[0])
+                        name_similar = info_similar["preferred_label"]
+                        adwords_similar = st.session_state.adwords.get(value[0])
+                        
+                        venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
+                        st.pyplot(venn)
+
+                        description_similar = info_similar["description"]
+                        st.write(description_similar)
+            with col2:
+                for key, value in similar_2.items():
+                    with st.popover(key, use_container_width = True):
+                        info_similar = st.session_state.occupationdata.get(value[0])
+                        name_similar = info_similar["preferred_label"]
+                        adwords_similar = st.session_state.adwords.get(value[0])
+
+                        venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
+                        st.pyplot(venn)
+
+                        description_similar = info_similar["description"]
+                        st.write(description_similar)
         except:
 
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken för {occupation_name}")
