@@ -79,16 +79,26 @@ def create_string(skills, start):
     skill_string = f"<p style='font-size:16px;'>{string}</p>"
     return skill_string
 
+def create_string_locations(data):
+    strings = []
+    for d in data:
+        annonstext = f"{d[1]['avstånd']} kilometer - Annonser {d[1]['annonser'][0]}({d[1]['annonser'][1]})"
+        strings.append(f"{d[1]['ortsnamn']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
+    string = "<br />".join(strings)
+    location_string = f"<p style='font-size:16px;'>{string}</p>"
+    return location_string
+
 def create_maxlist(data, max):
-    output = []
+    output = {}
     alla_nu = 0
     alla_historiskt= 0
-    for i in data:
-        if i["avstånd"] <= max:
-            alla_nu += i["nu"]
-            alla_historiskt += i["historiskt"]
-            annonstext = f"{i['avstånd']} kilometer - Annonser {i['nu']}({i['historiskt']})"
-            output.append(f"{i['ort']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
+    for k, v in data.items():
+        if v["avstånd"] <= max:
+            alla_nu += v["nu"]
+            alla_historiskt += v["historiskt"]
+            output[k] = {"ortsnamn": v["ort"],
+                         "avstånd": v["avstånd"],
+                         "annonser": [v["nu"], v["historiskt"]]}
     return output, alla_nu, alla_historiskt
 
 def create_venn_data(a_name, a_words, b_name, b_words, degree_of_overlap):
@@ -139,6 +149,23 @@ def create_wordcloud(words):
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
 
+def show_selectable_similar(data):
+    with st.sidebar:
+        selection = {}
+        for k, v in data.items():
+            now = 0
+            historical = 0
+            for l in v.values():
+                now += l[0]
+                historical += l[1]
+            name = f"{k} {now}({historical})"
+            selection[name] = k
+        selected = st.pills("Välj en eller flera närliggande yrken", list(selection.keys()), selection_mode = "multi")
+        if selected:
+            selected_names = []
+            for s in selected:
+                selected_names.append(selection.get(s))
+            st.session_state.selected_similar = selected_names
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -151,6 +178,9 @@ def post_selected_occupation(id_occupation):
         barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
     except:
         barometer = None
+    try:
+        similar = info["similar_occupations"]
+    except: similar = None
     
     description = info["description"]
     license = info["license"]
@@ -164,7 +194,7 @@ def post_selected_occupation(id_occupation):
 
     st.session_state.adwords_occupation = st.session_state.adwords.get(id_occupation)
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande orter", "Närliggande yrken"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken", "Närliggande orter"])
 
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -172,10 +202,8 @@ def post_selected_occupation(id_occupation):
 
         if yrkessamling == "Kultur":
             occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Kultur och media"
-            #X sorteras in under Arbetsförmedlingen Kultur och media
         elif yrkessamling == "Sjöfart":
             occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Sjöfart"
-            #X sorteras in under Arbetsförmedlingen Sjöfart
         else:
             occupation_string = f"{occupation_name} (yrkesbenämning)"
         if barometer:
@@ -236,12 +264,16 @@ def post_selected_occupation(id_occupation):
         text_dataunderlag_yrke = "<strong>Dataunderlag</strong><br />Yrkesbeskrivningar är hämtade från taxonomin i första hand. Saknas yrkesbeskrivning hämtas en från ett relaterat ESCO-yrke (European Skills, Competences and Occupations).<br />&emsp;&emsp;&emsp;Kompetensbegrepp som är kopplade i taxonomin till aktuell yrkesbenämning visas upp under kvalitetssäkrade kompetensbegrepp. Det förekommer också genererade kompetensbegrepp beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på de genererade begreppen varierar.<br />&emsp;&emsp;&emsp;Annonsord är hämtade från Historiska berikade annonser och viktade för relevans. Annonsorden är ord som ofta berör utbildnings-, kunskaps- eller erfarenhetskrav från arbetsgivare.<br />&emsp;&emsp;&emsp;Det finns alltid en länk till Jobtech Atlas där taxonomin kan närmare studeras. Finns det en koppling i Hitta yrken till aktuell yrkesbenämning finns en sådan länk också med."
 
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
+
+        #För kommentarer <fake@example.com>
+        #För klickbara länkar <https://www.markdownguide.org>
+        #Superscript E=MC<sup>2</sup>
+        #<span style="font-family:Papyrus; font-size:4em;">LOVE!</span>
      
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
-
 
         #En fil för barometeryrke - prognoser
 
@@ -290,95 +322,11 @@ def post_selected_occupation(id_occupation):
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
         #Här borde också AUB finnas med
-        
+
     with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
-        if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
-        else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
-
-        st.markdown(tree, unsafe_allow_html = True)
-        ads_occupation = st.session_state_ad_data.get(id_occupation)
-
-        valid_locations = sorted(st.session_state.valid_locations)
-        selected_location = st.selectbox(
-            "Välj en ort",
-            (valid_locations), placeholder = "", index = None)
-
-        if selected_location:
-            id_selected_location = st.session_state.locations_id.get(selected_location) 
-            other_locations = st.session_state.geodata.get(id_selected_location)
-
-            locations_with_distance = []
-
-            ads_selected = ads_occupation.get(id_selected_location)
-            if not ads_selected:
-                ads_selected = [0, 0]
-            nu_grund = ads_selected[0]
-            historiskt_grund = ads_selected[1]
-            
-            locations_with_distance.append({
-                "ort": selected_location,
-                "nu": ads_selected[0],
-                "historiskt": ads_selected[1],
-                "avstånd": 0})
-
-            for location_id, distance in other_locations.items():
-                ads_location = ads_occupation.get(location_id)
-                if ads_location:
-                    location_name = st.session_state.id_locations.get(location_id)
-                    if location_name:
-                        locations_with_distance.append({
-                            "ort": location_name,
-                            "nu": ads_location[0],
-                            "historiskt": ads_location[1],
-                            "avstånd": distance})
-                        
-            locations_with_ads = sorted(locations_with_distance, 
-                                        key = operator.itemgetter("avstånd"),
-                                        reverse = False)
-            
-            col1, col2 = st.columns(2)
-
-            with col1:
-                avstånd = st.slider("Hur långt kan du tänka dig att resa i kilometer?", 0, 70, 20)
-
-            with col2:
-                a, b, c = st.columns(3)
-
-            locations_with_ads_max, alla_nu, alla_historiskt = create_maxlist(locations_with_ads, avstånd)
-
-            skillnad_nu = alla_nu - nu_grund
-            skillnad_historiska = alla_historiskt - historiskt_grund
-
-            b.metric(label = "Platsbanken", value = alla_nu, delta = skillnad_nu)
-            c.metric(label = "2024", value = alla_historiskt, delta = skillnad_historiska)
-
-            antal_orter = len(locations_with_ads_max)
-            n = math.ceil(antal_orter / 2)
-
-            locations_1 = locations_with_ads_max[:n]
-            locations_2 = locations_with_ads_max[n:]
-
-            geo_string1 = create_string(locations_1, None)
-            geo_string2 = create_string(locations_2, None)
-
-            with col1:
-                st.markdown(geo_string1, unsafe_allow_html = True)
-
-            with col2:
-                st.markdown(geo_string2, unsafe_allow_html = True)
-
-        text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Närliggande orter baseras på avstånd mellan orter från öppen geodata, annonser i Platsbanken och Historiska berikade annonser knutna till dessa orter och vald yrkesbenämning." 
-        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
-
-    with tab5:
-        field_string = f"{occupation_field} (yrkesområde)"
-        group_string = f"{occupation_group} (yrkesgrupp)"
-        occupation_string = f"{occupation_name} (yrkesbenämning)"
 
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
@@ -387,9 +335,7 @@ def post_selected_occupation(id_occupation):
 
         st.markdown(tree, unsafe_allow_html = True)
 
-
-        try:
-            similar = info["similar_occupations"]
+        if similar:
             st.subheader(f"Närliggande yrken {occupation_name}")
 
             col1, col2 = st.columns(2)
@@ -432,12 +378,127 @@ def post_selected_occupation(id_occupation):
 
                         description_similar = info_similar["description"]
                         st.write(description_similar)
-        except:
 
+        else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken för {occupation_name}")
 
         text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB). Om det närliggande yrket tillhör ett annat yrkesområde märks det upp med \U000021D2." 
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
+
+    with tab5:
+        field_string = f"{occupation_field} (yrkesområde)"
+        group_string = f"{occupation_group} (yrkesgrupp)"
+        occupation_string = f"{occupation_name} (yrkesbenämning)"
+        if barometer:
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+        else:
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+
+        st.markdown(tree, unsafe_allow_html = True)
+
+        ads_occupation = st.session_state_ad_data.get(id_occupation)
+
+        valid_locations = sorted(st.session_state.valid_locations)
+        selected_location = st.selectbox(
+            "Välj en ort",
+            (valid_locations), placeholder = "", index = None)
+
+        if selected_location:
+            id_selected_location = st.session_state.locations_id.get(selected_location)
+            other_locations = st.session_state.geodata.get(id_selected_location)
+
+            st.session_state.selected_similar = []
+
+            locations_with_distance = {}
+
+            ads_selected = ads_occupation.get(id_selected_location)
+            if not ads_selected:
+                ads_selected = [0, 0]
+            nu_grund = ads_selected[0]
+            historiskt_grund = ads_selected[1]
+            
+            locations_with_distance[id_selected_location] = {
+                "ort": selected_location,
+                "nu": ads_selected[0],
+                "historiskt": ads_selected[1],
+                "avstånd": 0}
+
+            for location_id, distance in other_locations.items():
+                ads_location = ads_occupation.get(location_id)
+                if ads_location:
+                    location_name = st.session_state.id_locations.get(location_id)
+                    if location_name:
+                        locations_with_distance[location_id] = {
+                            "ort": location_name,
+                            "nu": ads_location[0],
+                            "historiskt": ads_location[1],
+                            "avstånd": distance}
+           
+            col1, col2 = st.columns(2)
+
+            with col1:
+                avstånd = st.slider("Hur långt kan du tänka dig att resa i kilometer?", 0, 70, 20)
+
+            with col2:
+                a, b, c = st.columns(3)
+
+            locations_with_ads_max, alla_nu, alla_historiskt = create_maxlist(locations_with_distance, avstånd)
+
+            if similar:
+                add_similar = st.toggle("Inkludera närliggande yrken")
+
+                if add_similar:
+                    st.session_state.selected_similar = []
+                    similar_locations = list(locations_with_ads_max.keys())
+
+                    similiar_name_ads = {}
+                    for value in similar.values():
+                        id_similar = value[0]
+                        info_similar = st.session_state.occupationdata.get(id_similar)
+                        ads_similar = st.session_state_ad_data.get(id_similar)
+                        ads_similar_locations = {}
+                        for k, v in ads_similar.items():
+                            if k in similar_locations:
+                                ads_similar_locations[k] = v
+
+                        similiar_name_ads[info_similar["preferred_label"]] = ads_similar_locations
+
+                    show_selectable_similar(similiar_name_ads)
+
+            if st.session_state.selected_similar:
+                for s in st.session_state.selected_similar:
+                    ads = similiar_name_ads.get(s)
+                    for l, a in ads.items():
+                        locations_with_ads_max[l]["annonser"][0] += a[0]
+                        locations_with_ads_max[l]["annonser"][1] += a[1]
+                        alla_nu += a[0]
+                        alla_historiskt += a[1]
+
+            skillnad_nu = alla_nu - nu_grund
+            skillnad_historiska = alla_historiskt - historiskt_grund
+
+            b.metric(label = "Platsbanken", value = alla_nu, delta = skillnad_nu)
+            c.metric(label = "2024", value = alla_historiskt, delta = skillnad_historiska)
+
+            antal_orter = len(locations_with_ads_max)
+            n = math.ceil(antal_orter / 2)
+
+            list_locations_with_ads_max = list(locations_with_ads_max.items())
+
+            locations_1 = list_locations_with_ads_max[:n]
+            locations_2 = list_locations_with_ads_max[n:]
+
+            geo_string1 = create_string_locations(locations_1)
+            geo_string2 = create_string_locations(locations_2)
+
+            with col1:
+                st.markdown(geo_string1, unsafe_allow_html = True)
+
+            with col2:
+                st.markdown(geo_string2, unsafe_allow_html = True)
+
+        text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Närliggande orter baseras på avstånd mellan orter från öppen geodata, annonser i Platsbanken och Historiska berikade annonser knutna till dessa orter och vald yrkesbenämning." 
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
 
 def choose_occupation_name():
     show_initial_information()
