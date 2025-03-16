@@ -414,7 +414,7 @@ def post_selected_occupation(id_occupation):
                 all_ads_o = st.session_state_ad_data.get(o)
                 for l, d in all_locations.items():
                     if l == id_selected_location:
-                        ads_selected = all_ads_o.get(id_selected_location)
+                        ads_selected = all_ads_o.get(l)
                         if not ads_selected:
                             ads_selected = [0, 0]
                         ads_o[id_selected_location] = {
@@ -431,10 +431,7 @@ def post_selected_occupation(id_occupation):
                                     "annonser": [ads_location[0], ads_location[1]],
                                     "avstånd": d}
                 st.session_state.ads_occupation[o] = ads_o
-            
-            nu_grund = st.session_state.ads_occupation[id_occupation][id_selected_location]["annonser"][0]
-            historiskt_grund = st.session_state.ads_occupation[id_occupation][id_selected_location]["annonser"][1]
-           
+                       
             col1, col2 = st.columns(2)
 
             with col1:
@@ -458,8 +455,9 @@ def post_selected_occupation(id_occupation):
                         total_ads_similar = [name_similar, 0, 0]
                         for l in locations_max_list.keys():
                             try:
-                                total_ads_similar[1] += st.session_state.ads_occupation[id_similar][l]["annonser"][0]
-                                total_ads_similar[2] += st.session_state.ads_occupation[id_similar][l]["annonser"][1]
+                                ads_similar_location = st.session_state.ads_occupation[id_similar][l]["annonser"]
+                                total_ads_similar[1] += ads_similar_location[0]
+                                total_ads_similar[2] += ads_similar_location[1]
                             except:
                                 pass
                         similiar_name_ads[id_similar] = total_ads_similar
@@ -478,6 +476,7 @@ def post_selected_occupation(id_occupation):
                                     "ortnamn": location_name,
                                     "annonser": [ads_occupation_location[0], ads_occupation_location[1]],
                                     "avstånd": d}
+                    # if not l == id_selected_location:
                     alla_nu += ads_occupation_location[0]
                     alla_historiskt += ads_occupation_location[1]
                 except:
@@ -487,15 +486,18 @@ def post_selected_occupation(id_occupation):
                 for s in st.session_state.selected_similar:
                     for l, d in locations_max_list.items():
                         try:
-                            locations_with_ads_max[l]["annonser"][0] += st.session_state.ads_occupation[s][l]["annonser"][0]
-                            locations_with_ads_max[l]["annonser"][1] += st.session_state.ads_occupation[s][l]["annonser"][1]
-                            alla_nu += st.session_state.ads_occupation[s][l]["annonser"][0]
-                            alla_historiskt += st.session_state.ads_occupation[s][l]["annonser"][1]
+                            ads_similar_location = st.session_state.ads_occupation[s][l]["annonser"]
+                            locations_with_ads_max[l]["annonser"][0] += ads_similar_location[0]
+                            locations_with_ads_max[l]["annonser"][1] += ads_similar_location[1]
+                            alla_nu += ads_similar_location[0]
+                            alla_historiskt += ads_similar_location[1]
                         except:
                             pass
 
-            skillnad_nu = alla_nu - nu_grund
-            skillnad_historiska = alla_historiskt - historiskt_grund
+            ads_grund = st.session_state.ads_occupation[id_occupation][id_selected_location]["annonser"]
+
+            skillnad_nu = alla_nu - ads_grund[0]
+            skillnad_historiska = alla_historiskt - ads_grund[1]
 
             b.metric(label = "Platsbanken", value = alla_nu, delta = skillnad_nu)
             c.metric(label = "2024", value = alla_historiskt, delta = skillnad_historiska)
