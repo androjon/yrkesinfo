@@ -34,6 +34,8 @@ def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
+        st.session_state.ads_occupation = {}
+        st.session_state.similar = None
         st.session_state.selected_similar = []
 
 def create_tree(field, group, occupation, barometer, bold):
@@ -84,23 +86,17 @@ def create_string_locations(data):
     strings = []
     for d in data:
         annonstext = f"{d[1]['avstånd']} kilometer - Annonser {d[1]['annonser'][0]}({d[1]['annonser'][1]})"
-        strings.append(f"{d[1]['ortsnamn']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
+        strings.append(f"{d[1]['ortnamn']}<br />&emsp;&emsp;&emsp;<small>{annonstext}</small>")
     string = "<br />".join(strings)
     location_string = f"<p style='font-size:16px;'>{string}</p>"
     return location_string
 
 def create_maxlist(data, max):
     output = {}
-    alla_nu = 0
-    alla_historiskt= 0
     for k, v in data.items():
-        if v["avstånd"] <= max:
-            alla_nu += v["nu"]
-            alla_historiskt += v["historiskt"]
-            output[k] = {"ortsnamn": v["ort"],
-                         "avstånd": v["avstånd"],
-                         "annonser": [v["nu"], v["historiskt"]]}
-    return output, alla_nu, alla_historiskt
+        if v <= max:
+            output[k] = v
+    return output
 
 def create_venn_data(a_name, a_words, b_name, b_words, degree_of_overlap):
     if degree_of_overlap == 1:
@@ -154,19 +150,14 @@ def show_selectable_similar(data):
     with st.sidebar:
         selection = {}
         for k, v in data.items():
-            now = 0
-            historical = 0
-            for l in v.values():
-                now += l[0]
-                historical += l[1]
-            name = f"{k} {now}({historical})"
+            name = f"{v[0]} {v[1]}({v[2]})"
             selection[name] = k
         selected = st.pills("Välj en eller flera närliggande yrken", list(selection.keys()), selection_mode = "multi")
         if selected:
-            selected_names = []
+            selected_ids = []
             for s in selected:
-                selected_names.append(selection.get(s))
-            st.session_state.selected_similar = selected_names
+                selected_ids.append(selection.get(s))
+            st.session_state.selected_similar = selected_ids
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -180,8 +171,9 @@ def post_selected_occupation(id_occupation):
     except:
         barometer = None
     try:
-        similar = info["similar_occupations"]
-    except: similar = None
+        st.session_state.similar = info["similar_occupations"]
+    except: 
+        st.session_state.similar = None
     
     description = info["description"]
     license = info["license"]
@@ -336,19 +328,19 @@ def post_selected_occupation(id_occupation):
 
         st.markdown(tree, unsafe_allow_html = True)
 
-        if similar:
+        if st.session_state.similar:
             st.subheader(f"Närliggande yrken {occupation_name}")
 
             col1, col2 = st.columns(2)
 
-            len_similar = len(similar)
+            len_similar = len(st.session_state.similar)
             n = math.ceil(len_similar / 2)
 
             similar_1 = {}
             similar_2 = {}
 
             number_of_similar = 0
-            for k, v in similar.items():
+            for k, v in st.session_state.similar.items():
                 if number_of_similar <= n:
                     similar_1[k] = v
                 else:
@@ -397,8 +389,6 @@ def post_selected_occupation(id_occupation):
 
         st.markdown(tree, unsafe_allow_html = True)
 
-        ads_occupation = st.session_state_ad_data.get(id_occupation)
-
         valid_locations = sorted(st.session_state.valid_locations)
         selected_location = st.selectbox(
             "Välj en ort",
@@ -408,30 +398,42 @@ def post_selected_occupation(id_occupation):
             id_selected_location = st.session_state.locations_id.get(selected_location)
             other_locations = st.session_state.geodata.get(id_selected_location)
 
-            locations_with_distance = {}
+            all_locations = {}
+            all_locations[id_selected_location] = 0
+            for l, d in other_locations.items():
+                location_name = st.session_state.id_locations.get(l)
+                if location_name:
+                    all_locations[l] = d
 
-            ads_selected = ads_occupation.get(id_selected_location)
-            if not ads_selected:
-                ads_selected = [0, 0]
-            nu_grund = ads_selected[0]
-            historiskt_grund = ads_selected[1]
+            all_occupations = [id_occupation]
+            for value in st.session_state.similar.values():
+                all_occupations.append(value[0])
+
+            for o in all_occupations:
+                ads_o = {}
+                all_ads_o = st.session_state_ad_data.get(o)
+                for l, d in all_locations.items():
+                    if l == id_selected_location:
+                        ads_selected = all_ads_o.get(id_selected_location)
+                        if not ads_selected:
+                            ads_selected = [0, 0]
+                        ads_o[id_selected_location] = {
+                            "ortnamn": selected_location,
+                            "annonser": [ads_selected[0], ads_selected[1]],
+                            "avstånd": d}
+                    else:
+                        ads_location = all_ads_o.get(l)              
+                        if ads_location:
+                            location_name = st.session_state.id_locations.get(l)
+                            if location_name:
+                                ads_o[l] = {
+                                    "ortnamn": location_name,
+                                    "annonser": [ads_location[0], ads_location[1]],
+                                    "avstånd": d}
+                st.session_state.ads_occupation[o] = ads_o
             
-            locations_with_distance[id_selected_location] = {
-                "ort": selected_location,
-                "nu": ads_selected[0],
-                "historiskt": ads_selected[1],
-                "avstånd": 0}
-
-            for location_id, distance in other_locations.items():
-                ads_location = ads_occupation.get(location_id)
-                if ads_location:
-                    location_name = st.session_state.id_locations.get(location_id)
-                    if location_name:
-                        locations_with_distance[location_id] = {
-                            "ort": location_name,
-                            "nu": ads_location[0],
-                            "historiskt": ads_location[1],
-                            "avstånd": distance}
+            nu_grund = st.session_state.ads_occupation[id_occupation][id_selected_location]["annonser"][0]
+            historiskt_grund = st.session_state.ads_occupation[id_occupation][id_selected_location]["annonser"][1]
            
             col1, col2 = st.columns(2)
 
@@ -441,36 +443,56 @@ def post_selected_occupation(id_occupation):
             with col2:
                 a, b, c = st.columns(3)
 
-            locations_with_ads_max, alla_nu, alla_historiskt = create_maxlist(locations_with_distance, avstånd)
+            locations_max_list = create_maxlist(all_locations, avstånd)
 
-            if similar:
+            if st.session_state.similar:
                 add_similar = st.toggle("Inkludera närliggande yrken")
 
                 if add_similar:
-                    similar_locations = list(locations_with_ads_max.keys())
-
                     similiar_name_ads = {}
-                    for value in similar.values():
+                    for value in st.session_state.similar.values():
                         id_similar = value[0]
                         info_similar = st.session_state.occupationdata.get(id_similar)
-                        ads_similar = st.session_state_ad_data.get(id_similar)
-                        ads_similar_locations = {}
-                        for k, v in ads_similar.items():
-                            if k in similar_locations:
-                                ads_similar_locations[k] = v
+                        name_similar = info_similar["preferred_label"]
 
-                        similiar_name_ads[info_similar["preferred_label"]] = ads_similar_locations
+                        total_ads_similar = [name_similar, 0, 0]
+                        for l in locations_max_list.keys():
+                            try:
+                                total_ads_similar[1] += st.session_state.ads_occupation[id_similar][l]["annonser"][0]
+                                total_ads_similar[2] += st.session_state.ads_occupation[id_similar][l]["annonser"][1]
+                            except:
+                                pass
+                        similiar_name_ads[id_similar] = total_ads_similar
 
                     show_selectable_similar(similiar_name_ads)
 
+            alla_nu = 0
+            alla_historiskt = 0
+
+            locations_with_ads_max = {}
+            for l, d in locations_max_list.items():
+                location_name = st.session_state.id_locations.get(l)
+                try:
+                    ads_occupation_location = st.session_state.ads_occupation[id_occupation][l]["annonser"]
+                    locations_with_ads_max[l] = {
+                                    "ortnamn": location_name,
+                                    "annonser": [ads_occupation_location[0], ads_occupation_location[1]],
+                                    "avstånd": d}
+                    alla_nu += ads_occupation_location[0]
+                    alla_historiskt += ads_occupation_location[1]
+                except:
+                    pass
+
             if st.session_state.selected_similar:
                 for s in st.session_state.selected_similar:
-                    ads = similiar_name_ads.get(s)
-                    for l, a in ads.items():
-                        locations_with_ads_max[l]["annonser"][0] += a[0]
-                        locations_with_ads_max[l]["annonser"][1] += a[1]
-                        alla_nu += a[0]
-                        alla_historiskt += a[1]
+                    for l, d in locations_max_list.items():
+                        try:
+                            locations_with_ads_max[l]["annonser"][0] += st.session_state.ads_occupation[s][l]["annonser"][0]
+                            locations_with_ads_max[l]["annonser"][1] += st.session_state.ads_occupation[s][l]["annonser"][1]
+                            alla_nu += st.session_state.ads_occupation[s][l]["annonser"][0]
+                            alla_historiskt += st.session_state.ads_occupation[s][l]["annonser"][1]
+                        except:
+                            pass
 
             skillnad_nu = alla_nu - nu_grund
             skillnad_historiska = alla_historiskt - historiskt_grund
