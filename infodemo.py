@@ -34,6 +34,7 @@ def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
+        st.session_state.selected_similar = []
 
 def create_tree(field, group, occupation, barometer, bold):
     SHORT_ELBOW = "└─"
@@ -407,8 +408,6 @@ def post_selected_occupation(id_occupation):
             id_selected_location = st.session_state.locations_id.get(selected_location)
             other_locations = st.session_state.geodata.get(id_selected_location)
 
-            st.session_state.selected_similar = []
-
             locations_with_distance = {}
 
             ads_selected = ads_occupation.get(id_selected_location)
@@ -448,7 +447,6 @@ def post_selected_occupation(id_occupation):
                 add_similar = st.toggle("Inkludera närliggande yrken")
 
                 if add_similar:
-                    st.session_state.selected_similar = []
                     similar_locations = list(locations_with_ads_max.keys())
 
                     similiar_name_ads = {}
