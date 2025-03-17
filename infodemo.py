@@ -474,7 +474,10 @@ def post_selected_occupation(id_occupation):
                     alla_nu += ads_occupation_location[0]
                     alla_historiskt += ads_occupation_location[1]
                 except:
-                    pass
+                    locations_with_ads_max[l] = {
+                                    "ortnamn": location_name,
+                                    "annonser": [0, 0],
+                                    "avstånd": d}
 
             if st.session_state.selected_similar:
                 for s in st.session_state.selected_similar:
