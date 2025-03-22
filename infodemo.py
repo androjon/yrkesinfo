@@ -3,7 +3,6 @@ import json
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
-import math
 
 @st.cache_data
 def import_data(filename):
@@ -17,6 +16,7 @@ def fetch_data():
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("wordcloud_data_v25.json")
+    st.session_state.aub_data = import_data("SUSA_AUB_med_tillfällen.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -62,13 +62,28 @@ def create_tree(field, group, occupation, barometer, bold):
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
 
-def create_string(skills, start):
+def create_string(skills, start, url):
     if start:
         strings = [f"<strong>{start}</strong><br />"]
     else:
         strings = []
     for s in skills:
         strings.append(s)
+    string = "<br />".join(strings)
+    skill_string = f"<p style='font-size:16px;'>{string}</p>"
+    return skill_string
+
+def create_educational_string(data, start, url):
+    if start:
+        strings = [f"<strong>{start}</strong><br />"]
+    else:
+        strings = []
+    for s in data:
+        url = s["url"]
+        educational_name = s["utbildningsnamn"]
+        city = s["ort"]
+        link = f"<a href='{url}'>{educational_name}</a>"
+        strings.append(f"{city} - {link}")
     string = "<br />".join(strings)
     skill_string = f"<p style='font-size:16px;'>{string}</p>"
     return skill_string
@@ -128,6 +143,10 @@ def post_selected_occupation(id_occupation):
     occupation_group = info["occupation_group"]
     occupation_group_id = info["occupation_group_id"]
     occupation_field = info["occupation_field"]
+
+    ssyk_code = occupation_group[0:4]
+    aub = st.session_state.aub_data.get(ssyk_code)
+
     try:
         barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
     except:
@@ -182,11 +201,11 @@ def post_selected_occupation(id_occupation):
             competences.extend(skills)
 
         if competences:
-            skill_string = create_string(competences, "Kvalitetssäkrade kompetensbegrepp:")
+            skill_string = create_string(competences, "Kvalitetssäkrade kompetensbegrepp:", None)
 
         if potential_skills:
             potential_skills = potential_skills[0:10 - len(competences)]
-            potential_skill_string = create_string(potential_skills, "Genererade kompetensbegrepp:")
+            potential_skill_string = create_string(potential_skills, "Genererade kompetensbegrepp:", None)
 
         col1, col2 = st.columns(2)
 
@@ -221,30 +240,48 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
-        #För kommentarer <fake@example.com>
-        #För klickbara länkar <https://www.markdownguide.org>
-        #Superscript E=MC<sup>2</sup>
-        #<span style="font-family:Papyrus; font-size:4em;">LOVE!</span>
-
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
-        #En fil för barometeryrke - prognoser
-
         if barometer:
             tree = create_tree(field_string, group_string, occupation_string, barometer, "barometer")
+            st.markdown(tree, unsafe_allow_html = True)
         else:
             tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
-
-        st.markdown(tree, unsafe_allow_html = True)
+            st.markdown(tree, unsafe_allow_html = True)
 
         if barometer:
-            st.image("prognos.png")
+
+            try:
+                barometer_name = info['barometer_name']
+                st.subheader(f"Jobbmöjligheter {barometer_name}")
+
+                a, b = st.columns(2)
+                mojligheter_png_name = f"mojligheter_{barometer_name}.png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
+
+                # .
+                # ├── README.md
+                # ├──📁 data
+                # │   └── image.png
+                # └── streamlit_app.py
+                #st.image("./data/image.png")
+
+                #Saknas till exempel Betongarbetare och Djurskötare
+
+            except:
+                st.write("Hittar ingen karta att visa.")
+
 
         else:
-            st.write("Ingen tillgänglig prognos")
+            st.subheader(f"Ingen tillgänglig prognos")
 
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst."
 
@@ -259,29 +296,27 @@ def post_selected_occupation(id_occupation):
 
         st.markdown(tree, unsafe_allow_html = True)
 
+        st.subheader(f"Utbildning")
+
         try:
             educational_group = info["education"]["group_name"]
             educational_backgrounds = info["education"]["educations"]
 
-            st.subheader(f"Utbildningsbakgrund {educational_group}")
-
             if educational_group:
-                if len(educational_backgrounds) <= 2:
-                    educational_string = create_string(educational_backgrounds, None)
-                else:
-                    educational_string = create_string(educational_backgrounds, None)
-
+                educational_string = create_string(educational_backgrounds, f"Vanlig utbildningsbakgrund för {educational_group}", None)
                 st.markdown(educational_string, unsafe_allow_html = True)
 
         except:
             st.write("Ingen data tillgänglig")
 
-        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />?Regionala matchningsindikatorer?"
+        if aub:
+            educational_string = create_educational_string(aub, f"Arbetsmarknadsutbildningar relaterade till {occupation_group}", None)
+            st.markdown(educational_string, unsafe_allow_html = True)
+
+        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Dessa är inte alltid helt uppdaterade."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
-
-        #Här borde också AUB finnas med
 
     with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -300,21 +335,20 @@ def post_selected_occupation(id_occupation):
 
             col1, col2 = st.columns(2)
 
-            len_similar = len(st.session_state.similar)
-            n = math.ceil(len_similar / 2)
+            headline_1 = "<strong>Annonsöverlapp och vanlig yrkesväxling</strong>"
+            headline_2 = "<strong>Annonsöverlapp</strong>"
 
             similar_1 = {}
             similar_2 = {}
 
-            number_of_similar = 0
             for k, v in st.session_state.similar.items():
-                if number_of_similar <= n:
+                if v[2] == True:
                     similar_1[k] = v
                 else:
                     similar_2[k] = v
-                number_of_similar += 1
 
             with col1:
+                st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
                 for key, value in similar_1.items():
                     with st.popover(key, use_container_width = True):
                         info_similar = st.session_state.occupationdata.get(value[0])
@@ -327,6 +361,7 @@ def post_selected_occupation(id_occupation):
                         description_similar = info_similar["description"]
                         st.write(description_similar)
             with col2:
+                st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
                     with st.popover(key, use_container_width = True):
                         info_similar = st.session_state.occupationdata.get(value[0])
