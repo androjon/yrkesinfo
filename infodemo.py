@@ -16,7 +16,7 @@ def fetch_data():
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("wordcloud_data_v25.json")
-    st.session_state.aub_data = import_data("SUSA_AUB_med_tillfällen.json")
+    st.session_state.aub_data = import_data("SUSA_AUB.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
