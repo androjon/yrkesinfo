@@ -259,13 +259,13 @@ def post_selected_occupation(id_occupation):
                 st.subheader(f"Jobbmöjligheter {barometer_name}")
 
                 a, b = st.columns(2)
-                mojligheter_png_name = f"mojligheter_{barometer_name}.png"
-                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
-                rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                #mojligheter_png_name = f"mojligheter_{barometer_name}.png"
+                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                #rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
+                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
                 
-                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
-                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
+                #a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                #b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
                 # .
                 # ├── README.md
