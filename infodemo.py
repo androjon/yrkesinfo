@@ -280,8 +280,11 @@ def post_selected_occupation(id_occupation):
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{barometer_name}.png"
                 rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-                a.image(mojligheter_png_name)
-                b.image(rekryteringssituation_png_name)
+
+                with a:
+                    st.image(mojligheter_png_name)
+                with b:
+                    st.image(rekryteringssituation_png_name)
 
                 #Saknas till exempel Betongarbetare och Djurskötare
 
