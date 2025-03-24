@@ -12,16 +12,16 @@ def import_data(filename):
     return output
 
 def fetch_data():
-    st.session_state.occupationdata = import_data("valid_occupations_with_info_v25.json")
+    st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
-    st.session_state.adwords = import_data("wordcloud_data_v25.json")
+    st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_data("SUSA_AUB.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
     st.title("Yrkesinformation")
-    initial_text = "Ett försöka att erbjuda information/stöd för arbetsförmedlare när det kommer till att välja <em>rätt</em> yrke och underlätta relaterade informerade bedömningar och beslut när det kommer till GYR-Y (Geografisk och yrkesmässig rörlighet - Yrke). Informationen är taxonomi-, statistik- och annonsdriven och berör 1180 yrkesbenämningar. Det är dessa yrkesbenämningar som bedöms ha tillräckligt annonsunderlag för pålitliga beräkningar."
+    initial_text = "Ett försöka att erbjuda information/stöd för arbetsförmedlare när det kommer till att välja <em>rätt</em> yrke och underlätta relaterade informerade bedömningar och beslut när det kommer till GYR-Y (Geografisk och yrkesmässig rörlighet - Yrke). Informationen är taxonomi-, statistik- och annonsdriven. 1180 yrkesbenämningar bedöms ha tillräckligt annonsunderlag för pålitliga beräkningar. Resterande yrkesbenämningar kompletteras med beräkningar på yrkesgruppsnivå."
     st.markdown(f"<p style='font-size:12px;'>{initial_text}</p>", unsafe_allow_html=True)
 
 def initiate_session_state():
@@ -29,7 +29,7 @@ def initiate_session_state():
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
 
-def create_tree(field, group, occupation, barometer, bold):
+def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
     LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -42,6 +42,12 @@ def create_tree(field, group, occupation, barometer, bold):
         occupation = f"<strong>{occupation}</strong>"
     elif bold == "group":
         group = f"<strong>{group}</strong>"
+
+    if yrkessamling == "Kultur":
+        occupation = f"{occupation} <em>hanteras av AF Kultur</em>"
+    elif yrkessamling == "Sjöfart":
+        occupation = f"{occupation} <em>hanteras av AF Sjöfart</em>"
+
     if barometer:
         if barometer[1] == True:
             strings.append(f"{SHORT_ELBOW}  {barometer_name}")
@@ -73,11 +79,17 @@ def create_string(skills, start, url):
     skill_string = f"<p style='font-size:16px;'>{string}</p>"
     return skill_string
 
-def create_educational_string(data, start, url):
-    if start:
-        strings = [f"<strong>{start}</strong><br />"]
-    else:
-        strings = []
+
+def create_string_educational_background(educations):
+    strings = []
+    for s in educations:
+        strings.append(s)
+    string = "<br />".join(strings)
+    skill_string = f"<p style='font-size:16px;'>{string}</p>"
+    return skill_string
+
+def create_educational_string(data):
+    strings = []
     for s in data:
         url = s["url"]
         educational_name = s["utbildningsnamn"]
@@ -147,13 +159,14 @@ def post_selected_occupation(id_occupation):
     ssyk_code = occupation_group[0:4]
     aub = st.session_state.aub_data.get(ssyk_code)
 
-    try:
+    if info["barometer_id"]:
         barometer = [f"{info['barometer_name']} (yrkesbarometeryrke)", info["barometer_above_ssyk"], info["barometer_part_of_ssyk"]]
-    except:
+    else:
         barometer = None
-    try:
+
+    if info["similar_occupations"]:
         st.session_state.similar = info["similar_occupations"]
-    except:
+    else:
         st.session_state.similar = None
 
     description = info["description"]
@@ -161,12 +174,11 @@ def post_selected_occupation(id_occupation):
     skills = info["skill"]
     potential_skills = info["potential_skill"]
 
-    try:
+    if info["yrkessamling"]:
         yrkessamling = info["yrkessamling"]
-    except:
+    else:
         yrkessamling = None
 
-    st.session_state.adwords_occupation = st.session_state.adwords.get(id_occupation)
 
     tab1, tab2, tab3, tab4 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken"])
 
@@ -174,21 +186,22 @@ def post_selected_occupation(id_occupation):
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
 
-        if yrkessamling == "Kultur":
-            occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Kultur och media"
-        elif yrkessamling == "Sjöfart":
-            occupation_string = f"{occupation_name} (yrkesbenämning) sorteras in under Arbetsförmedlingen Sjöfart"
-        else:
-            occupation_string = f"{occupation_name} (yrkesbenämning)"
+        occupation_string = f"{occupation_name} (yrkesbenämning)"
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation", yrkessamling)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+            tree = create_tree(field_string, group_string, occupation_string, None, "occupation", yrkessamling)
         st.markdown(tree, unsafe_allow_html = True)
 
-        st.subheader(f"Yrkesbeskrivning {occupation_name}")
+        st.subheader(f"Yrkesbeskrivning - {occupation_name}")
 
-        st.write(description)
+        if info["esco_description"] == True:
+            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {description}</p>"
+             
+        else:
+            description_string = f"<p style='font-size:16px;'>{description}</p>"
+
+        st.markdown(description_string, unsafe_allow_html = True)
 
         st.subheader("Kompetensbegrepp och annonsord")
 
@@ -201,11 +214,11 @@ def post_selected_occupation(id_occupation):
             competences.extend(skills)
 
         if competences:
-            skill_string = create_string(competences, "Kvalitetssäkrade kompetensbegrepp:", None)
+            skill_string = create_string(competences, "Kvalitetssäkrade kompetensbegrepp", None)
 
         if potential_skills:
             potential_skills = potential_skills[0:10 - len(competences)]
-            potential_skill_string = create_string(potential_skills, "Genererade kompetensbegrepp:", None)
+            potential_skill_string = create_string(potential_skills, "Genererade kompetensbegrepp", None)
 
         col1, col2 = st.columns(2)
 
@@ -216,9 +229,16 @@ def post_selected_occupation(id_occupation):
                 st.markdown(potential_skill_string, unsafe_allow_html = True)
 
         with col2:
-            type = "yrkesbenämning"
-            st.markdown(f"<strong>Annonsord {type}:</strong>", unsafe_allow_html = True)
-            create_wordcloud(st.session_state.adwords_occupation)
+            if info["wordcloud_id"]:
+                st.session_state.adwords_occupation = st.session_state.adwords.get(info["wordcloud_id"])
+                if info["wordcloud_id"] == id_occupation:
+                    st.markdown(f"<strong>Annonsord</strong> {occupation_name}", unsafe_allow_html = True)
+                    create_wordcloud(st.session_state.adwords_occupation)
+                else:
+                    st.markdown(f"<strong>Annonsord</strong> {occupation_group}", unsafe_allow_html = True)
+                    create_wordcloud(st.session_state.adwords_occupation)
+            else:
+                st.write("Inte tillräkligt med annonsunderlag för att kunna skapa ordmoln")
 
         st.subheader("Länkar")
 
@@ -228,12 +248,10 @@ def post_selected_occupation(id_occupation):
         info_text_atlas = "Jobtech Atlas"
         link1.link_button("Jobtech Atlas", atlas_uri, help = info_text_atlas, icon = ":material/link:")
 
-        try:
+        if info["hitta_yrken"]:
             hitta_yrken_uri = info["hitta_yrken"]
             info_text_hitta_yrken = "Hitta yrken"
             link2.link_button("Hitta yrken", hitta_yrken_uri, help = info_text_hitta_yrken, icon = ":material/link:")
-        except:
-            pass
 
         text_dataunderlag_yrke = "<strong>Dataunderlag</strong><br />Yrkesbeskrivningar är hämtade från taxonomin i första hand. Saknas yrkesbeskrivning hämtas en från ett relaterat ESCO-yrke (European Skills, Competences and Occupations).<br />&emsp;&emsp;&emsp;Kompetensbegrepp som är kopplade i taxonomin till aktuell yrkesbenämning visas upp under kvalitetssäkrade kompetensbegrepp. Det förekommer också genererade kompetensbegrepp beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på de genererade begreppen varierar.<br />&emsp;&emsp;&emsp;Annonsord är hämtade från Historiska berikade annonser och viktade för relevans. Annonsorden är ord som ofta berör utbildnings-, kunskaps- eller erfarenhetskrav från arbetsgivare.<br />&emsp;&emsp;&emsp;Det finns alltid en länk till Jobtech Atlas där taxonomin kan närmare studeras. Finns det en koppling i Hitta yrken till aktuell yrkesbenämning finns en sådan länk också med."
 
@@ -256,28 +274,22 @@ def post_selected_occupation(id_occupation):
 
             try:
                 barometer_name = info['barometer_name']
-                st.subheader(f"Jobbmöjligheter {barometer_name}")
+                st.subheader(f"Jobbmöjligheter - {barometer_name}")
 
                 a, b = st.columns(2)
-                #mojligheter_png_name = f"mojligheter_{barometer_name}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
-                #rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                mojligheter_png_name = f"mojligheter_{barometer_name}.png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path = "./data/"
+                rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
                 
-                #a.image(f"{path_mojligheter}/{mojligheter_png_name}")
-                #b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
-
-                # .
-                # ├── README.md
-                # ├──📁 data
-                # │   └── image.png
-                # └── streamlit_app.py
-                #st.image("./data/image.png")
+                a.image(f"{path}/{mojligheter_png_name}")
+                b.image(f"{path}/{rekryteringssituation_png_name}")
 
                 #Saknas till exempel Betongarbetare och Djurskötare
 
             except:
-                st.write("Hittar ingen karta att visa.")
+                st.write("Hittar ingen karta att visa")
 
 
         else:
@@ -296,24 +308,26 @@ def post_selected_occupation(id_occupation):
 
         st.markdown(tree, unsafe_allow_html = True)
 
-        st.subheader(f"Utbildning")
-
-        try:
+        if info["education"]:
             educational_group = info["education"]["group_name"]
             educational_backgrounds = info["education"]["educations"]
 
             if educational_group:
-                educational_string = create_string(educational_backgrounds, f"Vanlig utbildningsbakgrund för {educational_group}", None)
+                aub_string = f"<strong>Vanlig utbildningsbakgrund {educational_group}</strong><br />"    
+                st.markdown(f"<p style='font-size:24px;'>{aub_string}</p>", unsafe_allow_html=True) 
+                educational_string = create_string_educational_background(educational_backgrounds)
                 st.markdown(educational_string, unsafe_allow_html = True)
 
-        except:
+        else:
             st.write("Ingen data tillgänglig")
 
         if aub:
-            educational_string = create_educational_string(aub, f"Arbetsmarknadsutbildningar relaterade till {occupation_group}", None)
+            aub_string = f"<strong>Arbetsmarknadsutbildning {occupation_group}</strong><br />"    
+            st.markdown(f"<p style='font-size:24px;'>{aub_string}</p>", unsafe_allow_html=True) 
+            educational_string = create_educational_string(aub)
             st.markdown(educational_string, unsafe_allow_html = True)
 
-        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Dessa är inte alltid helt uppdaterade."
+        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Informationen här är inte alltid uppdaterad."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
@@ -324,14 +338,24 @@ def post_selected_occupation(id_occupation):
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+            if info["similar_yb_yb"] == True:
+                tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+            else:
+                tree = create_tree(field_string, group_string, occupation_string, barometer, "group")
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+            if info["similar_yb_yb"] == True:
+                tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+            else:
+                tree = create_tree(field_string, group_string, occupation_string, None, "group")
 
         st.markdown(tree, unsafe_allow_html = True)
 
         if st.session_state.similar:
-            st.subheader(f"Närliggande yrken {occupation_name}")
+
+            if info["similar_yb_yb"] == True:
+                st.subheader(f"Närliggande yrken - {occupation_name}")
+            else:
+                st.subheader(f"Närliggande yrken - {occupation_group}")
 
             col1, col2 = st.columns(2)
 
@@ -375,7 +399,7 @@ def post_selected_occupation(id_occupation):
                         st.write(description_similar)
 
         else:
-            st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken för {occupation_name}")
+            st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
 
         text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB). Om det närliggande yrket tillhör ett annat yrkesområde märks det upp med \U000021D2."
 
