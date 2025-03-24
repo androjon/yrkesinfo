@@ -3,6 +3,7 @@ import json
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
+from pathlib import Path
 
 @st.cache_data
 def import_data(filename):
@@ -278,10 +279,11 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{barometer_name}.png"
-                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
-                path = "./static/"
+                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path = Path(__file__).parent / "static"
+                #path = "./static/"
                 rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
                 
                 a.image(f"{path}{mojligheter_png_name}")
                 b.image(f"{path}{rekryteringssituation_png_name}")
