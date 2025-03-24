@@ -279,15 +279,9 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{barometer_name}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
-                #path = Path(__file__).parent / "static"
-                #path = "./static/"
                 rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
-                image_path_a = Path(__file__).static(mojligheter_png_name)
-                image_path_b = Path(__file__).static(rekryteringssituation_png_name)
-                a.image(image_path_a)
-                b.image(image_path_b)
+                a.image(mojligheter_png_name)
+                b.image(rekryteringssituation_png_name)
 
                 #Saknas till exempel Betongarbetare och Djurskötare
 
