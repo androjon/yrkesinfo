@@ -283,8 +283,8 @@ def post_selected_occupation(id_occupation):
                 rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
                 path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
                 
-                a.image(f"{path}{mojligheter_png_name}")
-                b.image(f"{path}{rekryteringssituation_png_name}")
+                a.markdown(f"{path}{mojligheter_png_name}")
+                b.markdown(f"{path}{rekryteringssituation_png_name}")
 
                 #Saknas till exempel Betongarbetare och Djurskötare
 
