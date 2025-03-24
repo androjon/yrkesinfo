@@ -279,7 +279,7 @@ def post_selected_occupation(id_occupation):
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{barometer_name}.png"
                 path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
-                path = "./app/data/"
+                path = "./app/static/"
                 rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
                 path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
                 
