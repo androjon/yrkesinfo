@@ -280,14 +280,14 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
                 path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
@@ -317,7 +317,7 @@ def post_selected_occupation(id_occupation):
         d.metric(label = "Platsbanken", value = ads_selected_region[0])
         e.metric(label = "2024", value = ads_selected_region[1])
         
-        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst."
+        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024. Antalet annonser är inte alltid uppdaterat."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
@@ -433,6 +433,12 @@ def post_selected_occupation(id_occupation):
 
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
+
+                        ads_similar = st.session_state_regional_ads.get(value[0])
+                        ads_selected_region = ads_similar.get(selected_region_id)
+
+                        if not ads_selected_region:
+                            ads_selected_region = [0, 0]
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
 
