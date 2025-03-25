@@ -3,7 +3,6 @@ import json
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
-from pathlib import Path
 
 @st.cache_data
 def import_data(filename):
@@ -18,6 +17,8 @@ def fetch_data():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_data("SUSA_AUB.json")
+    st.session_state.regions = import_data("region_name_id.json")
+    st.session_state_regional_ads = import_data("yb_region_annonser_nu_2024.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -37,11 +38,11 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
     strings = [f"{field}"]
     if barometer:
         barometer_name = barometer[0]
-        if bold == "barometer":
+        if "barometer" in bold:
             barometer_name = f"<strong>{barometer_name}</strong>"
-    if bold == "occupation":
+    if "occupation" in bold:
         occupation = f"<strong>{occupation}</strong>"
-    elif bold == "group":
+    if "group" in bold:
         group = f"<strong>{group}</strong>"
 
     if yrkessamling == "Kultur":
@@ -189,9 +190,9 @@ def post_selected_occupation(id_occupation):
 
         occupation_string = f"{occupation_name} (yrkesbenämning)"
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation", yrkessamling)
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "occupation", yrkessamling)
+            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling)
         st.markdown(tree, unsafe_allow_html = True)
 
         st.subheader(f"Yrkesbeskrivning - {occupation_name}")
@@ -265,10 +266,10 @@ def post_selected_occupation(id_occupation):
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "barometer")
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "occupation"])
             st.markdown(tree, unsafe_allow_html = True)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"])
             st.markdown(tree, unsafe_allow_html = True)
 
         if barometer:
@@ -277,18 +278,16 @@ def post_selected_occupation(id_occupation):
                 barometer_name = info['barometer_name']
                 st.subheader(f"Jobbmöjligheter - {barometer_name}")
 
-
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
-                path = "./data"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+
+                path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
-                
-                #Saknas till exempel Betongarbetare och Djurskötare
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
@@ -297,6 +296,27 @@ def post_selected_occupation(id_occupation):
         else:
             st.subheader(f"Ingen tillgänglig prognos")
 
+        st.subheader(f"Annonser - {occupation_name}")
+
+        valid_regions = sorted(list(st.session_state.regions.keys()))
+
+        a, b = st.columns(2)
+
+        with b:
+            c, d, e = st.columns(3)
+
+        selected_region = a.selectbox(
+        "Regional avgränsning",
+        (valid_regions), placeholder = "Sverige", index = 12)
+
+        selected_region_id = st.session_state.regions.get(selected_region)
+
+        ads_selected_occupation = st.session_state_regional_ads.get(id_occupation)
+        ads_selected_region = ads_selected_occupation.get(selected_region_id)
+
+        d.metric(label = "Platsbanken", value = ads_selected_region[0])
+        e.metric(label = "2024", value = ads_selected_region[1])
+        
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst."
 
         st.write("---")
@@ -304,9 +324,9 @@ def post_selected_occupation(id_occupation):
 
     with tab3:
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, "group")
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"])
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, "group")
+            tree = create_tree(field_string, group_string, occupation_string, None, ["group"])
 
         st.markdown(tree, unsafe_allow_html = True)
 
@@ -341,14 +361,14 @@ def post_selected_occupation(id_occupation):
 
         if barometer:
             if info["similar_yb_yb"] == True:
-                tree = create_tree(field_string, group_string, occupation_string, barometer, "occupation")
+                tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"])
             else:
-                tree = create_tree(field_string, group_string, occupation_string, barometer, "group")
+                tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"])
         else:
             if info["similar_yb_yb"] == True:
-                tree = create_tree(field_string, group_string, occupation_string, None, "occupation")
+                tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"])
             else:
-                tree = create_tree(field_string, group_string, occupation_string, None, "group")
+                tree = create_tree(field_string, group_string, occupation_string, None, ["group"])
 
         st.markdown(tree, unsafe_allow_html = True)
 
@@ -384,6 +404,16 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
+                        ads_similar = st.session_state_regional_ads.get(value[0])
+                        ads_selected_region = ads_similar.get(selected_region_id)
+
+                        if not ads_selected_region:
+                            ads_selected_region = [0, 0]
+
+                        ads_string = f"<p style='font-size:16px;'><em>{name_similar}</em> - Annonser {selected_region}: {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
+
+                        st.markdown(ads_string, unsafe_allow_html = True)
+
                         similar_description = info_similar["description"]
 
                         if info_similar["esco_description"] == True:
@@ -404,6 +434,10 @@ def post_selected_occupation(id_occupation):
 
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
+
+                        ads_string = f"<p style='font-size:16px;'><em>{name_similar}</em> - Annonser {selected_region}: {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
+
+                        st.markdown(ads_string, unsafe_allow_html = True)
 
                         similar_description = info_similar["description"]
 
