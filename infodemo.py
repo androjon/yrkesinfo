@@ -384,11 +384,13 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
+                        similar_description = info_similar["description"]
+
                         if info_similar["esco_description"] == True:
-                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {description}</p>"
+                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
                             
                         else:
-                            description_string = f"<p style='font-size:16px;'>{description}</p>"
+                            description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
 
@@ -403,11 +405,13 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
+                        similar_description = info_similar["description"]
+
                         if info_similar["esco_description"] == True:
-                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {description}</p>"
+                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
                             
                         else:
-                            description_string = f"<p style='font-size:16px;'>{description}</p>"
+                            description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
 
