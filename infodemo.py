@@ -384,8 +384,14 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        description_similar = info_similar["description"]
-                        st.write(description_similar)
+                        if info_similar["esco_description"] == True:
+                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {description}</p>"
+                            
+                        else:
+                            description_string = f"<p style='font-size:16px;'>{description}</p>"
+
+                        st.markdown(description_string, unsafe_allow_html = True)
+
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
@@ -397,8 +403,13 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        description_similar = info_similar["description"]
-                        st.write(description_similar)
+                        if info_similar["esco_description"] == True:
+                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {description}</p>"
+                            
+                        else:
+                            description_string = f"<p style='font-size:16px;'>{description}</p>"
+
+                        st.markdown(description_string, unsafe_allow_html = True)
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
