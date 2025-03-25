@@ -412,8 +412,6 @@ def post_selected_occupation(id_occupation):
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
 
-                        st.markdown(ads_string, unsafe_allow_html = True)
-
                         similar_description = info_similar["description"]
 
                         if info_similar["esco_description"] == True:
