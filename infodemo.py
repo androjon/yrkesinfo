@@ -277,15 +277,17 @@ def post_selected_occupation(id_occupation):
                 barometer_name = info['barometer_name']
                 st.subheader(f"Jobbmöjligheter - {barometer_name}")
 
+
                 a, b = st.columns(2)
-                mojligheter_png_name = f"mojligheter_{barometer_name}.png"
-                rekryteringssituation_png_name = f"rekrytering_{barometer_name}.png"
-
-                with a:
-                    st.image(mojligheter_png_name)
-                with b:
-                    st.image(rekryteringssituation_png_name)
-
+                mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
+                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
+                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path = "./data"
+                
+                a.image(f"{path}/{mojligheter_png_name}")
+                b.image(f"{path}/{rekryteringssituation_png_name}")
+                
                 #Saknas till exempel Betongarbetare och Djurskötare
 
             except:
