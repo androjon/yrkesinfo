@@ -410,7 +410,7 @@ def post_selected_occupation(id_occupation):
                         if not ads_selected_region:
                             ads_selected_region = [0, 0]
 
-                        ads_string = f"<p style='font-size:16px;'><em>{name_similar}</em> - Annonser {selected_region}: {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
+                        ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
 
                         st.markdown(ads_string, unsafe_allow_html = True)
 
@@ -423,6 +423,7 @@ def post_selected_occupation(id_occupation):
                             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
+                        st.markdown(ads_string, unsafe_allow_html = True)
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
@@ -435,9 +436,7 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_string = f"<p style='font-size:16px;'><em>{name_similar}</em> - Annonser {selected_region}: {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
-
-                        st.markdown(ads_string, unsafe_allow_html = True)
+                        ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
 
                         similar_description = info_similar["description"]
 
@@ -448,6 +447,7 @@ def post_selected_occupation(id_occupation):
                             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
+                        st.markdown(ads_string, unsafe_allow_html = True)
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
