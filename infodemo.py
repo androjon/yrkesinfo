@@ -203,6 +203,13 @@ def post_selected_occupation(id_occupation):
         else:
             description_string = f"<p style='font-size:16px;'>{description}</p>"
 
+        #Skriv varje kompetens på en egen rad med st.markdown(body, unsafe_allow_html=False, *, help=None)
+        #Hovra över kompetensen och få beskrivningen med help
+        #Se till att avståndet inte blir för stort
+        #Testa help med :material/info: för symbol
+
+        #Blir det bra kan det också funka för AUB
+
         st.markdown(description_string, unsafe_allow_html = True)
 
         st.subheader("Kompetensbegrepp och annonsord")
@@ -244,7 +251,11 @@ def post_selected_occupation(id_occupation):
 
         st.subheader("Länkar")
 
-        atlas_uri = info["uri"]
+        url = "https://atlas.jobtechdev.se/taxonomy/"
+
+        atlas_uri = f"{url}{id_occupation}"
+        #info["uri"]
+        #https://atlas.jobtechdev.se/taxonomy/57z2_b5A_hAT
 
         link1, link2 = st.columns(2)
         info_text_atlas = "Jobtech Atlas"
@@ -280,14 +291,14 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
                 path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
@@ -302,20 +313,27 @@ def post_selected_occupation(id_occupation):
 
         a, b = st.columns(2)
 
-        with b:
+        with a:
             c, d, e = st.columns(3)
 
-        selected_region = a.selectbox(
-        "Regional avgränsning",
-        (valid_regions), placeholder = "Sverige", index = 12)
+        selected_region = b.selectbox(
+        "Regional avgränsning", (valid_regions), index = None)
 
-        selected_region_id = st.session_state.regions.get(selected_region)
+        if selected_region:
+            selected_region_id = st.session_state.regions.get(selected_region)
+
+        else:
+            selected_region = "Sverige"
+            selected_region_id = "i46j_HmG_v64"
 
         ads_selected_occupation = st.session_state_regional_ads.get(id_occupation)
         ads_selected_region = ads_selected_occupation.get(selected_region_id)
 
-        d.metric(label = "Platsbanken", value = ads_selected_region[0])
-        e.metric(label = "2024", value = ads_selected_region[1])
+        if not ads_selected_region:
+            ads_selected_region = [0, 0]
+
+        c.metric(label = "Platsbanken", value = ads_selected_region[0])
+        d.metric(label = "2024", value = ads_selected_region[1])
         
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024. Antalet annonser är inte alltid uppdaterat."
 
