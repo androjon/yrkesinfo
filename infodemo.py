@@ -18,7 +18,8 @@ def fetch_data():
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_data("SUSA_AUB.json")
     st.session_state.regions = import_data("region_name_id.json")
-    st.session_state_regional_ads = import_data("yb_region_annonser_nu_2024.json")
+    st.session_state.regional_ads = import_data("yb_region_annonser_nu_2024.json")
+    st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -70,17 +71,16 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
 
-def create_string(skills, start, url):
-    if start:
-        strings = [f"<strong>{start}</strong><br />"]
-    else:
-        strings = []
+def create_skill_string(skills, start, start_hover):
+    strings = [[f"<strong>{start}</strong><br />", start_hover]]
     for s in skills:
-        strings.append(s)
-    string = "<br />".join(strings)
-    skill_string = f"<p style='font-size:16px;'>{string}</p>"
-    return skill_string
-
+        pref_label = s.replace(" ᵈ","").replace(" ᵍ","")
+        hover_info = st.session_state.competence_descriptions.get(pref_label)
+        if not hover_info:
+            hover_info = "Ingen beskrivning tillgänglig."
+        skill_string = f"<p style='font-size:16px;'>{s}</p>"
+        strings.append([skill_string, hover_info])
+    return strings
 
 def create_string_educational_background(educations):
     strings = []
@@ -97,10 +97,11 @@ def create_educational_string(data):
         educational_name = s["utbildningsnamn"]
         city = s["ort"]
         link = f"<a href='{url}'>{educational_name}</a>"
-        strings.append(f"{city} - {link}")
-    string = "<br />".join(strings)
-    skill_string = f"<p style='font-size:16px;'>{string}</p>"
-    return skill_string
+        hover_info = s["beskrivning"]
+        string = f"{city} - {link}"
+        edu_string = f"<p style='font-size:16px;'>{string}</p>"
+        strings.append([edu_string, hover_info])
+    return strings
 
 def create_venn_data(a_name, a_words, b_name, b_words, degree_of_overlap):
     if degree_of_overlap == 1:
@@ -203,13 +204,6 @@ def post_selected_occupation(id_occupation):
         else:
             description_string = f"<p style='font-size:16px;'>{description}</p>"
 
-        #Skriv varje kompetens på en egen rad med st.markdown(body, unsafe_allow_html=False, *, help=None)
-        #Hovra över kompetensen och få beskrivningen med help
-        #Se till att avståndet inte blir för stort
-        #Testa help med :material/info: för symbol
-
-        #Blir det bra kan det också funka för AUB
-
         st.markdown(description_string, unsafe_allow_html = True)
 
         st.subheader("Kompetensbegrepp och annonsord")
@@ -223,19 +217,21 @@ def post_selected_occupation(id_occupation):
             competences.extend(skills)
 
         if competences:
-            skill_string = create_string(competences, "Kvalitetssäkrade kompetensbegrepp", None)
+            skill_string = create_skill_string(competences, "Kvalitetssäkrade kompetensbegrepp", "Kompetensbegrepp med koppling i taxonomin till aktuell yrkesbenämning.")
 
         if potential_skills:
             potential_skills = potential_skills[0:10 - len(competences)]
-            potential_skill_string = create_string(potential_skills, "Genererade kompetensbegrepp", None)
+            potential_skill_string = create_skill_string(potential_skills, "Genererade kompetensbegrepp", "Beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på genererade begreppen varierar.")
 
         col1, col2 = st.columns(2)
 
         with col1:
             if competences:
-                st.markdown(skill_string, unsafe_allow_html = True)
+                for c in skill_string:
+                    st.markdown(c[0], unsafe_allow_html = True, help = c[1])
             if potential_skills:
-                st.markdown(potential_skill_string, unsafe_allow_html = True)
+                for p in potential_skill_string:
+                   st.markdown(p[0], unsafe_allow_html = True, help = p[1])
 
         with col2:
             if info["wordcloud_id"]:
@@ -255,7 +251,6 @@ def post_selected_occupation(id_occupation):
 
         atlas_uri = f"{url}{id_occupation}"
         #info["uri"]
-        #https://atlas.jobtechdev.se/taxonomy/57z2_b5A_hAT
 
         link1, link2 = st.columns(2)
         info_text_atlas = "Jobtech Atlas"
@@ -266,7 +261,7 @@ def post_selected_occupation(id_occupation):
             info_text_hitta_yrken = "Hitta yrken"
             link2.link_button("Hitta yrken", hitta_yrken_uri, help = info_text_hitta_yrken, icon = ":material/link:")
 
-        text_dataunderlag_yrke = "<strong>Dataunderlag</strong><br />Yrkesbeskrivningar är hämtade från taxonomin i första hand. Saknas yrkesbeskrivning hämtas en från ett relaterat ESCO-yrke (European Skills, Competences and Occupations).<br />&emsp;&emsp;&emsp;Kompetensbegrepp som är kopplade i taxonomin till aktuell yrkesbenämning visas upp under kvalitetssäkrade kompetensbegrepp. Det förekommer också genererade kompetensbegrepp beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på de genererade begreppen varierar.<br />&emsp;&emsp;&emsp;Annonsord är hämtade från Historiska berikade annonser och viktade för relevans. Annonsorden är ord som ofta berör utbildnings-, kunskaps- eller erfarenhetskrav från arbetsgivare.<br />&emsp;&emsp;&emsp;Det finns alltid en länk till Jobtech Atlas där taxonomin kan närmare studeras. Finns det en koppling i Hitta yrken till aktuell yrkesbenämning finns en sådan länk också med."
+        text_dataunderlag_yrke = "<strong>Dataunderlag</strong><br />Yrkesbeskrivningar är hämtade från taxonomin i första hand. Saknas yrkesbeskrivning hämtas en från ett relaterat ESCO-yrke (European Skills, Competences and Occupations).<br />&emsp;&emsp;&emsp;Kompetensbeskrivningar har genererats av en språkmodell med taxonomin som kontext.<br />&emsp;&emsp;&emsp;Annonsord är hämtade från Historiska berikade annonser och viktade för relevans. Annonsorden är ord som ofta berör utbildnings-, kunskaps- eller erfarenhetskrav från arbetsgivare.<br />&emsp;&emsp;&emsp;Det finns alltid en länk till Jobtech Atlas där taxonomin kan närmare studeras. Finns det en koppling i Hitta yrken till aktuell yrkesbenämning finns en sådan länk också med."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
@@ -291,14 +286,14 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
                 path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
@@ -326,7 +321,7 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads_selected_occupation = st.session_state_regional_ads.get(id_occupation)
+        ads_selected_occupation = st.session_state.regional_ads.get(id_occupation)
         ads_selected_region = ads_selected_occupation.get(selected_region_id)
 
         if not ads_selected_region:
@@ -365,7 +360,8 @@ def post_selected_occupation(id_occupation):
             aub_string = f"<strong>Arbetsmarknadsutbildning {occupation_group}</strong><br />"    
             st.markdown(f"<p style='font-size:24px;'>{aub_string}</p>", unsafe_allow_html=True) 
             educational_string = create_educational_string(aub)
-            st.markdown(educational_string, unsafe_allow_html = True)
+            for e in educational_string:
+                st.markdown(e[0], unsafe_allow_html = True, help = e[1])
 
         text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Informationen här är inte alltid uppdaterad."
 
@@ -422,7 +418,7 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_similar = st.session_state_regional_ads.get(value[0])
+                        ads_similar = st.session_state.regional_ads.get(value[0])
                         ads_selected_region = ads_similar.get(selected_region_id)
 
                         if not ads_selected_region:
@@ -452,7 +448,7 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_similar = st.session_state_regional_ads.get(value[0])
+                        ads_similar = st.session_state.regional_ads.get(value[0])
                         ads_selected_region = ads_similar.get(selected_region_id)
 
                         if not ads_selected_region:
@@ -481,6 +477,7 @@ def post_selected_occupation(id_occupation):
 
 def choose_occupation_name():
     show_initial_information()
+
     valid_occupations = list(st.session_state.valid_occupations.keys())
     valid_occupations = sorted(valid_occupations)
     selected_occupation_name = st.selectbox(
