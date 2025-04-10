@@ -1,3 +1,6 @@
+#Utforska requests_cache
+#Behöver inte anropa api:et så ofta.
+
 import streamlit as st
 import json
 from matplotlib import pyplot as plt
@@ -286,14 +289,14 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
                 path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
@@ -325,7 +328,7 @@ def post_selected_occupation(id_occupation):
         if ads_selected_occupation:
             ads_selected_region = ads_selected_occupation.get(selected_region_id)
 
-        if not ads_selected_region:
+        if not ads_selected_occupation:
             ads_selected_region = [0, 0]
 
         c.metric(label = "Platsbanken", value = ads_selected_region[0])
@@ -424,7 +427,7 @@ def post_selected_occupation(id_occupation):
                         if ads_similar:
                             ads_selected_region = ads_similar.get(selected_region_id)
 
-                        if not ads_selected_region:
+                        if not ads_similar:
                             ads_selected_region = [0, 0]
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
@@ -452,11 +455,10 @@ def post_selected_occupation(id_occupation):
                         st.pyplot(venn)
 
                         ads_similar = st.session_state.regional_ads.get(value[0])
-
                         if ads_similar:
                             ads_selected_region = ads_similar.get(selected_region_id)
 
-                        if not ads_selected_region:
+                        if not ads_similar:
                             ads_selected_region = [0, 0]
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region[0]}/{ads_selected_region[1]} (Platsbanken/2024)</p>"
