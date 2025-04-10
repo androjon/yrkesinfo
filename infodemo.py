@@ -322,7 +322,8 @@ def post_selected_occupation(id_occupation):
             selected_region_id = "i46j_HmG_v64"
 
         ads_selected_occupation = st.session_state.regional_ads.get(id_occupation)
-        ads_selected_region = ads_selected_occupation.get(selected_region_id)
+        if ads_selected_occupation:
+            ads_selected_region = ads_selected_occupation.get(selected_region_id)
 
         if not ads_selected_region:
             ads_selected_region = [0, 0]
@@ -419,7 +420,9 @@ def post_selected_occupation(id_occupation):
                         st.pyplot(venn)
 
                         ads_similar = st.session_state.regional_ads.get(value[0])
-                        ads_selected_region = ads_similar.get(selected_region_id)
+
+                        if ads_similar:
+                            ads_selected_region = ads_similar.get(selected_region_id)
 
                         if not ads_selected_region:
                             ads_selected_region = [0, 0]
@@ -449,7 +452,9 @@ def post_selected_occupation(id_occupation):
                         st.pyplot(venn)
 
                         ads_similar = st.session_state.regional_ads.get(value[0])
-                        ads_selected_region = ads_similar.get(selected_region_id)
+
+                        if ads_similar:
+                            ads_selected_region = ads_similar.get(selected_region_id)
 
                         if not ads_selected_region:
                             ads_selected_region = [0, 0]
