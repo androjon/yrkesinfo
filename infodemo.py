@@ -329,6 +329,9 @@ def post_selected_occupation(id_occupation):
         if ads_selected_occupation:
             ads_selected_region = ads_selected_occupation.get(selected_region_id)
 
+            if not ads_selected_region:
+                ads_selected_region = [0, 0]
+
         if not ads_selected_occupation:
             ads_selected_region = [0, 0]
 
