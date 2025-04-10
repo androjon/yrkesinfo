@@ -289,14 +289,14 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
                 path = "./data/"
                 
-                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
-                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
+                a.image(f"{path}/{mojligheter_png_name}")
+                b.image(f"{path}/{rekryteringssituation_png_name}")
 
             except:
                 st.write("Hittar ingen karta att visa")
