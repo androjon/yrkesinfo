@@ -1,6 +1,5 @@
 #Utforska requests_cache
 #Behöver inte anropa api:et så ofta.
-#Uppdatera så att inte veterinärer syns för specialistläkare
 
 import streamlit as st
 import json
@@ -154,6 +153,18 @@ def create_wordcloud(words):
     plt.axis('off')
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
+
+def get_adds(occupation, region):
+    ads_selected_occupation = st.session_state.regional_ads.get(occupation)
+    if ads_selected_occupation:
+        ads_selected_region = ads_selected_occupation.get(region)
+        if not ads_selected_region:
+            ads_selected_region = [0, 0]
+
+    if not ads_selected_occupation:
+        ads_selected_region = [0, 0]
+    
+    return ads_selected_region
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -325,15 +336,7 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads_selected_occupation = st.session_state.regional_ads.get(id_occupation)
-        if ads_selected_occupation:
-            ads_selected_region = ads_selected_occupation.get(selected_region_id)
-
-            if not ads_selected_region:
-                ads_selected_region = [0, 0]
-
-        if not ads_selected_occupation:
-            ads_selected_region = [0, 0]
+        ads_selected_region = get_adds(id_occupation, selected_region_id)
 
         c.metric(label = "Platsbanken", value = ads_selected_region[0])
         d.metric(label = "2024", value = ads_selected_region[1])
@@ -426,16 +429,7 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_similar = st.session_state.regional_ads.get(value[0])
-
-                        if ads_similar:
-                            ads_selected_region_similar = ads_similar.get(selected_region_id)
-
-                            if not ads_selected_region_similar:
-                                ads_selected_region_similar = [0, 0]
-
-                        if not ads_similar:
-                            ads_selected_region_similar = [0, 0]
+                        ads_selected_region_similar = get_adds(value[0], selected_region_id)
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region_similar[0]}/{ads_selected_region_similar[1]} (Platsbanken/2024)</p>"
 
@@ -461,15 +455,7 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_similar = st.session_state.regional_ads.get(value[0])
-                        if ads_similar:
-                            ads_selected_region_similar = ads_similar.get(selected_region_id)
-
-                            if not ads_selected_region_similar:
-                                ads_selected_region_similar = [0, 0]                            
-
-                        if not ads_similar:
-                            ads_selected_region_similar = [0, 0]
+                        ads_selected_region_similar = get_adds(value[0], selected_region_id)
 
                         ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region_similar[0]}/{ads_selected_region_similar[1]} (Platsbanken/2024)</p>"
 
