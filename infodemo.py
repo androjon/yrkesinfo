@@ -1,5 +1,4 @@
-#Utforska requests_cache
-#Behöver inte anropa api:et så ofta.
+#En ny demo för malmö med skåne som ifyllt
 
 import streamlit as st
 import json
@@ -18,6 +17,7 @@ def fetch_data():
     st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
+    st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_data("SUSA_AUB.json")
     st.session_state.regions = import_data("region_name_id.json")
@@ -35,7 +35,7 @@ def initiate_session_state():
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
 
-def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
+def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
     LONG_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -50,9 +50,12 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
         group = f"<strong>{group}</strong>"
 
     if yrkessamling == "Kultur":
-        occupation = f"{occupation} <em>hanteras av AF Kultur</em>"
+        occupation = f"{occupation} hanteras av AF Kultur"
     elif yrkessamling == "Sjöfart":
-        occupation = f"{occupation} <em>hanteras av AF Sjöfart</em>"
+        occupation = f"{occupation} hanteras av AF Sjöfart"
+
+    if reglerad:
+        occupation = f"{occupation} Reglerat yrke"
 
     if barometer:
         if barometer[1] == True:
@@ -74,15 +77,43 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None):
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
 
-def create_skill_string(skills, start, start_hover):
-    strings = [[f"<strong>{start}</strong><br />", start_hover]]
-    for s in skills:
-        pref_label = s.replace(" ᵈ","").replace(" ᵍ","")
-        hover_info = st.session_state.competence_descriptions.get(pref_label)
-        if not hover_info:
-            hover_info = "Ingen beskrivning tillgänglig."
-        skill_string = f"<p style='font-size:16px;'>{s}</p>"
-        strings.append([skill_string, hover_info])
+def create_link(id_group, id_region = None):
+    base = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
+    if id_region:
+        if not id_region == "i46j_HmG_v64":
+            region = "&l=2:" + id_region
+            return base + region
+        else:
+            return base
+    else:
+        return base
+    
+def add_hoover_to_string(skill):
+    hover_info = st.session_state.competence_descriptions.get(skill)
+    if not hover_info:
+        hover_info = "Ingen beskrivning tillgänglig."
+    skill_string = f"<p style='font-size:16px;'>{skill}</p>"
+    return [skill_string, hover_info]
+    
+def create_skill_string(license, skills, generated):
+    strings = []
+
+    if license:
+        strings.append([f"<strong>Reglerad behörigheter</strong><br />",
+                        "Behörigheter som du enligt svensk lag måste ha för att kunna utöva yrket."])
+        for l in license:
+            strings.append(add_hoover_to_string(l))
+    if skills:
+        strings.append([f"<strong>Kvalitetssäkrade kompetensbegrepp</strong><br />",
+                        "Kompetensbegrepp med koppling i taxonomin till aktuell yrkesbenämning."])
+        for s in skills:
+            strings.append(add_hoover_to_string(s))
+    if generated:
+        strings.append([f"<strong>Genererade kompetensbegrepp</strong><br />",
+                        "Beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på genererade begreppen varierar."])
+        for g in generated:
+            strings.append(add_hoover_to_string(g))
+
     return strings
 
 def create_string_educational_background(educations):
@@ -206,9 +237,9 @@ def post_selected_occupation(id_occupation):
 
         occupation_string = f"{occupation_name} (yrkesbenämning)"
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling)
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling, license)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling)
+            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling, license)
         st.markdown(tree, unsafe_allow_html = True)
 
         st.subheader(f"Yrkesbeskrivning - {occupation_name}")
@@ -223,30 +254,13 @@ def post_selected_occupation(id_occupation):
 
         st.subheader("Kompetensbegrepp och annonsord")
 
-        competences = []
-
-        if license:
-            competences.extend(license)
-
-        if skills:
-            competences.extend(skills)
-
-        if competences:
-            skill_string = create_skill_string(competences, "Kvalitetssäkrade kompetensbegrepp", "Kompetensbegrepp med koppling i taxonomin till aktuell yrkesbenämning.")
-
-        if potential_skills:
-            potential_skills = potential_skills[0:10 - len(competences)]
-            potential_skill_string = create_skill_string(potential_skills, "Genererade kompetensbegrepp", "Beräknade utifrån relationer mellan taxonomin och ESCO. Kvalitén på genererade begreppen varierar.")
+        skill_string = create_skill_string(license, skills, potential_skills[0:10 - len(skills)])
 
         col1, col2 = st.columns(2)
 
         with col1:
-            if competences:
-                for c in skill_string:
-                    st.markdown(c[0], unsafe_allow_html = True, help = c[1])
-            if potential_skills:
-                for p in potential_skill_string:
-                   st.markdown(p[0], unsafe_allow_html = True, help = p[1])
+            for c in skill_string:
+                st.markdown(c[0], unsafe_allow_html = True, help = c[1])
 
         with col2:
             if info["wordcloud_id"]:
@@ -265,7 +279,6 @@ def post_selected_occupation(id_occupation):
         url = "https://atlas.jobtechdev.se/taxonomy/"
 
         atlas_uri = f"{url}{id_occupation}"
-        #info["uri"]
 
         link1, link2 = st.columns(2)
         info_text_atlas = "Jobtech Atlas"
@@ -287,10 +300,10 @@ def post_selected_occupation(id_occupation):
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "occupation"])
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "occupation"], yrkessamling, license)
             st.markdown(tree, unsafe_allow_html = True)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"])
+            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling, license)
             st.markdown(tree, unsafe_allow_html = True)
 
         if barometer:
@@ -311,7 +324,7 @@ def post_selected_occupation(id_occupation):
                 b.image(f"{path}/{rekryteringssituation_png_name}")
 
             except:
-                st.write("Hittar ingen karta att visa")
+                st.subheader(f"Ingen tillgänglig prognos")
 
 
         else:
@@ -340,6 +353,9 @@ def post_selected_occupation(id_occupation):
 
         c.metric(label = "Platsbanken", value = ads_selected_region[0])
         d.metric(label = "2024", value = ads_selected_region[1])
+
+        link = create_link(occupation_group_id, selected_region_id)
+        st.link_button(f"Platsbanken {occupation_group[4:]} - {selected_region}", link, icon = ":material/link:")
         
         text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024. Antalet annonser är inte alltid uppdaterat."
 
@@ -348,9 +364,9 @@ def post_selected_occupation(id_occupation):
 
     with tab3:
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"])
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"], yrkessamling, license)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, ["group"])
+            tree = create_tree(field_string, group_string, occupation_string, None, ["group"], yrkessamling, license)
 
         st.markdown(tree, unsafe_allow_html = True)
 
@@ -386,14 +402,14 @@ def post_selected_occupation(id_occupation):
 
         if barometer:
             if info["similar_yb_yb"] == True:
-                tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"])
+                tree = create_tree(field_string, group_string, occupation_string, barometer, ["occupation"], yrkessamling, license)
             else:
-                tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"])
+                tree = create_tree(field_string, group_string, occupation_string, barometer, ["group"], yrkessamling, license)
         else:
             if info["similar_yb_yb"] == True:
-                tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"])
+                tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling, license)
             else:
-                tree = create_tree(field_string, group_string, occupation_string, None, ["group"])
+                tree = create_tree(field_string, group_string, occupation_string, None, ["group"], yrkessamling, license)
 
         st.markdown(tree, unsafe_allow_html = True)
 
@@ -442,7 +458,7 @@ def post_selected_occupation(id_occupation):
                             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
-                        st.markdown(ads_string, unsafe_allow_html = True)
+                        st.markdown(ads_string, unsafe_allow_html = True)                       
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
@@ -480,12 +496,9 @@ def post_selected_occupation(id_occupation):
 
 def choose_occupation_name():
     show_initial_information()
-
-    valid_occupations = list(st.session_state.valid_occupations.keys())
-    valid_occupations = sorted(valid_occupations)
     selected_occupation_name = st.selectbox(
         "Välj en yrkesbenämning",
-        (valid_occupations), placeholder = "", index = None)
+        (st.session_state.valid_occupation_names), placeholder = "", index = None)
     if selected_occupation_name:
         plt.close("all")
         id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
@@ -495,6 +508,6 @@ def main ():
     initiate_session_state()
     fetch_data()
     choose_occupation_name()
-
+    
 if __name__ == '__main__':
     main ()
