@@ -1,7 +1,9 @@
 #En ny demo för malmö med skåne som ifyllt
+#Framtiden en knapp för att gå från närliggande till valt yrke
 
 import streamlit as st
 import json
+import requests
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
@@ -21,7 +23,7 @@ def fetch_data():
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_data("SUSA_AUB.json")
     st.session_state.regions = import_data("region_name_id.json")
-    st.session_state.regional_ads = import_data("yb_region_annonser_nu_2024.json")
+    st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
 
 def show_initial_information():
@@ -77,16 +79,31 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, 
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
 
-def create_link(id_group, id_region = None):
-    base = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
+@st.cache_data
+def fetch_number_of_ads(url):
+    response = requests.get(url)
+    data = response.text
+    json_data = json.loads(data)
+    data_total = json_data["total"]
+    number_of_ads = list(data_total.values())[0]
+    return number_of_ads
+
+def create_link_addnumbers(id_group, id_region = None):
+    if id_region == "i46j_HmG_v64":
+        id_region = None
+    adlink = "https://jobsearch.api.jobtechdev.se/search?"
+    end = "&limit=0"
     if id_region:
-        if not id_region == "i46j_HmG_v64":
-            region = "&l=2:" + id_region
-            return base + region
-        else:
-            return base
+        url = adlink + "occupation-group=" + id_group + "&region=" + id_region + end
     else:
-        return base
+        url = adlink + "occupation-group=" + id_group + end
+    number_of_ads = fetch_number_of_ads(url)
+    link = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
+    if id_region:
+        region = "&l=2:" + id_region
+        return link + region, number_of_ads
+    else:
+        return link, number_of_ads
     
 def add_hoover_to_string(skill):
     hover_info = st.session_state.competence_descriptions.get(skill)
@@ -190,10 +207,10 @@ def get_adds(occupation, region):
     if ads_selected_occupation:
         ads_selected_region = ads_selected_occupation.get(region)
         if not ads_selected_region:
-            ads_selected_region = [0, 0]
+            ads_selected_region = 0
 
     if not ads_selected_occupation:
-        ads_selected_region = [0, 0]
+        ads_selected_region = 0
     
     return ads_selected_region
 
@@ -300,10 +317,10 @@ def post_selected_occupation(id_occupation):
         occupation_string = f"{occupation_name} (yrkesbenämning)"
 
         if barometer:
-            tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "occupation"], yrkessamling, license)
+            tree = create_tree(field_string, group_string, occupation_string, barometer, ["barometer", "group"], yrkessamling, license)
             st.markdown(tree, unsafe_allow_html = True)
         else:
-            tree = create_tree(field_string, group_string, occupation_string, None, ["occupation"], yrkessamling, license)
+            tree = create_tree(field_string, group_string, occupation_string, None, ["group"], yrkessamling, license)
             st.markdown(tree, unsafe_allow_html = True)
 
         if barometer:
@@ -314,23 +331,23 @@ def post_selected_occupation(id_occupation):
 
                 a, b = st.columns(2)
                 mojligheter_png_name = f"mojligheter_{info['barometer_id']}.png"
-                #path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
+                path_mojligheter = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/mojligheter_till_arbete_png"
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
-                #path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
+                path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
-                path = "./data/"
+                #path = "./data/"
                 
-                a.image(f"{path}/{mojligheter_png_name}")
-                b.image(f"{path}/{rekryteringssituation_png_name}")
+                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
+                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
 
             except:
-                st.subheader(f"Ingen tillgänglig prognos")
+                st.write(f"Ingen tillgänglig prognos")
 
 
         else:
-            st.subheader(f"Ingen tillgänglig prognos")
+            st.write(f"Ingen tillgänglig prognos")
 
-        st.subheader(f"Annonser - {occupation_name}")
+        st.subheader(f"Annonser - {occupation_group}")
 
         valid_regions = sorted(list(st.session_state.regions.keys()))
 
@@ -349,15 +366,16 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads_selected_region = get_adds(id_occupation, selected_region_id)
+        ads_selected_region = get_adds(occupation_group_id, selected_region_id)
+        link, ads_now = create_link_addnumbers(occupation_group_id, selected_region_id)
 
-        c.metric(label = "Platsbanken", value = ads_selected_region[0])
-        d.metric(label = "2024", value = ads_selected_region[1])
+        c.metric(label = "Platsbanken", value = ads_now)
+        d.metric(label = "2024", value = ads_selected_region)
 
-        link = create_link(occupation_group_id, selected_region_id)
-        st.link_button(f"Platsbanken {occupation_group[4:]} - {selected_region}", link, icon = ":material/link:")
+
+        st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
         
-        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024. Antalet annonser är inte alltid uppdaterat."
+        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
@@ -440,14 +458,11 @@ def post_selected_occupation(id_occupation):
                     with st.popover(key, use_container_width = True):
                         info_similar = st.session_state.occupationdata.get(value[0])
                         name_similar = info_similar["preferred_label"]
+
                         adwords_similar = st.session_state.adwords.get(value[0])
 
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
-
-                        ads_selected_region_similar = get_adds(value[0], selected_region_id)
-
-                        ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region_similar[0]}/{ads_selected_region_similar[1]} (Platsbanken/2024)</p>"
 
                         similar_description = info_similar["description"]
 
@@ -457,8 +472,7 @@ def post_selected_occupation(id_occupation):
                         else:
                             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
-                        st.markdown(description_string, unsafe_allow_html = True)
-                        st.markdown(ads_string, unsafe_allow_html = True)                       
+                        st.markdown(description_string, unsafe_allow_html = True)                   
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
@@ -471,10 +485,6 @@ def post_selected_occupation(id_occupation):
                         venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
                         st.pyplot(venn)
 
-                        ads_selected_region_similar = get_adds(value[0], selected_region_id)
-
-                        ads_string = f"<p style='font-size:16px;'><em>Annonser {selected_region}</em> {ads_selected_region_similar[0]}/{ads_selected_region_similar[1]} (Platsbanken/2024)</p>"
-
                         similar_description = info_similar["description"]
 
                         if info_similar["esco_description"] == True:
@@ -484,12 +494,11 @@ def post_selected_occupation(id_occupation):
                             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
                         st.markdown(description_string, unsafe_allow_html = True)
-                        st.markdown(ads_string, unsafe_allow_html = True)
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
 
-        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB). Om det närliggande yrket tillhör ett annat yrkesområde märks det upp med \U000021D2."
+        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB)."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
