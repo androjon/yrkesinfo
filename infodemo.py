@@ -335,10 +335,10 @@ def post_selected_occupation(id_occupation):
                 rekryteringssituation_png_name = f"rekrytering_{info['barometer_id']}.png"
                 path_rekrytering = "/Users/jonfindahl/Desktop/Python/Yrkesinformation/rekryteringssituation_png"
 
-                #path = "./data/"
+                path = "./data/"
                 
-                a.image(f"{path_mojligheter}/{mojligheter_png_name}")
-                b.image(f"{path_rekrytering}/{rekryteringssituation_png_name}")
+                a.image(f"{path}/{mojligheter_png_name}")
+                b.image(f"{path}/{rekryteringssituation_png_name}")
 
             except:
                 st.write(f"Ingen tillgänglig prognos")
