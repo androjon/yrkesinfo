@@ -350,18 +350,23 @@ def post_selected_occupation(id_occupation):
         st.subheader(f"Annonser - {occupation_group}")
 
         valid_regions = sorted(list(st.session_state.regions.keys()))
+        valid_regions.append("Sverige")
 
         a, b = st.columns(2)
 
         with a:
             c, d, e = st.columns(3)
 
+        index_förvald_region = valid_regions.index("Skåne län")
+
         selected_region = b.selectbox(
-        "Regional avgränsning", (valid_regions), index = None)
+        "Regional avgränsning", (valid_regions), index = index_förvald_region)
 
         if selected_region:
-            selected_region_id = st.session_state.regions.get(selected_region)
-
+            if selected_region == "Sverige":
+                selected_region_id = "i46j_HmG_v64"
+            else:
+                selected_region_id = st.session_state.regions.get(selected_region)
         else:
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
