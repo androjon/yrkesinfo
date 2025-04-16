@@ -8,8 +8,6 @@ from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
 
-#AF's blå färg "#1616B2"
-
 @st.cache_data
 def import_data(filename):
     with open(filename) as file:
