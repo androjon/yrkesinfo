@@ -8,6 +8,8 @@ from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
 
+#AF's blå färg "#1616B2"
+
 @st.cache_data
 def import_data(filename):
     with open(filename) as file:
@@ -25,10 +27,12 @@ def fetch_data():
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
+    st.session_state.labour_flow = import_data("topp4_växlad_data.json")
+    st.session_state.forecast = import_data("barometer_regional.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
-    st.title("Yrkesinfo")
+    st.title(":primary[Yrkesinfo]")
     initial_text = "Ett försöka att erbjuda information/stöd för arbetsförmedlare när det kommer till att välja <em>rätt</em> yrke och underlätta relaterade informerade bedömningar och beslut när det kommer till GYR-Y (Geografisk och yrkesmässig rörlighet - Yrke). Informationen är taxonomi-, statistik- och annonsdriven. 1180 yrkesbenämningar bedöms ha tillräckligt annonsunderlag för pålitliga beräkningar. Resterande yrkesbenämningar kompletteras med beräkningar på yrkesgruppsnivå."
     st.markdown(f"<p style='font-size:12px;'>{initial_text}</p>", unsafe_allow_html=True)
 
@@ -213,6 +217,60 @@ def get_adds(occupation, region):
         ads_selected_region = 0
     
     return ads_selected_region
+
+def create_similar_occupations(ssyk_source, region_id):
+    similar_1 = {}
+    similar_2 = {}
+
+    for k, v in st.session_state.similar.items():
+        info_similar = st.session_state.occupationdata.get(k)
+        name_similar = info_similar["preferred_label"]
+        similar_description = info_similar["description"]
+        overlap = v
+
+        few_overlaps = "\U000025D4"
+        overlaps = "\U000025D1"
+        many_overlaps = "\U000025D5"
+
+        if overlap == 0:
+            name_similar = f"{name_similar} {few_overlaps}"
+        elif overlap == 0.5:
+            name_similar = f"{name_similar} {overlaps}"
+        else:
+            name_similar = f"{name_similar} {many_overlaps}"
+
+        occupation_group = info_similar["occupation_group"]
+        ssyk_similar = occupation_group[0:4]
+        labour_flow_ssyk = st.session_state.labour_flow.get(ssyk_source)
+        if ssyk_similar in labour_flow_ssyk:
+            name_similar = f"{name_similar} (SCB)"
+
+        if info_similar["barometer_id"]:
+            occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
+            if occupation_forecast:
+                regional_forecast = occupation_forecast.get(region_id)
+                if regional_forecast:
+                    if regional_forecast == "små":
+                        arrow = "\u2193"
+                    elif regional_forecast == "medelstora":
+                        arrow = "\u2192"
+                    elif regional_forecast == "stora":
+                        arrow = "\u2191"
+                    name_similar = f"{name_similar} {arrow}"
+
+        if info_similar["esco_description"] == True:
+            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
+            
+        else:
+            description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
+
+        if ssyk_similar in labour_flow_ssyk:
+            similar_1[name_similar] = [k, overlap, description_string]
+
+        else:
+            similar_2[name_similar] = [k, overlap, description_string]
+
+    return similar_1, similar_2
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -448,57 +506,25 @@ def post_selected_occupation(id_occupation):
             headline_1 = "<strong>Annonsöverlapp och vanlig yrkesväxling</strong>"
             headline_2 = "<strong>Annonsöverlapp</strong>"
 
-            similar_1 = {}
-            similar_2 = {}
-
-            for k, v in st.session_state.similar.items():
-                if v[2] == True:
-                    similar_1[k] = v
-                else:
-                    similar_2[k] = v
+            similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
 
             with col1:
                 st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
                 for key, value in similar_1.items():
                     with st.popover(key, use_container_width = True):
-                        info_similar = st.session_state.occupationdata.get(value[0])
-                        name_similar = info_similar["preferred_label"]
-
                         adwords_similar = st.session_state.adwords.get(value[0])
-
-                        venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
                         st.pyplot(venn)
-
-                        similar_description = info_similar["description"]
-
-                        if info_similar["esco_description"] == True:
-                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
-                            
-                        else:
-                            description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
-
-                        st.markdown(description_string, unsafe_allow_html = True)                   
+                        st.markdown(value[2], unsafe_allow_html = True)                 
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
                     with st.popover(key, use_container_width = True):
-                        info_similar = st.session_state.occupationdata.get(value[0])
-                        name_similar = info_similar["preferred_label"]
                         adwords_similar = st.session_state.adwords.get(value[0])
-
-                        venn = create_venn(occupation_name, name_similar, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
                         st.pyplot(venn)
-
-                        similar_description = info_similar["description"]
-
-                        if info_similar["esco_description"] == True:
-                            description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
-                            
-                        else:
-                            description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
-
-                        st.markdown(description_string, unsafe_allow_html = True)
+                        st.markdown(value[2], unsafe_allow_html = True) 
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
