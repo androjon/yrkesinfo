@@ -25,7 +25,7 @@ def fetch_data():
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
-    st.session_state.labour_flow = import_data("topp4_växlad_data.json")
+    st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
 
 def show_initial_information():
