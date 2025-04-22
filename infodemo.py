@@ -65,7 +65,7 @@ def save_feedback(feedback_data):
     blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
 
 @st.dialog("Återkoppling")
-def dialog_(selected_occupation, tab_name, questions):
+def dialog_(selected_occupation, tab_name, questions, ):
     stars = st.feedback("stars", key = f"{tab_name}_stars")
     answers = {}
     for q in questions:
@@ -87,9 +87,9 @@ def dialog_(selected_occupation, tab_name, questions):
         st.rerun()
 
 @st.fragment
-def create_feedback(occupation_name, tab_name, questions, selected_location = None):
+def create_feedback(occupation_name, tab_name, questions):
     if st.button("Återkoppla", key = f"{tab_name}_button"):
-        dialog_(occupation_name, tab_name, questions, selected_location)
+        dialog_(occupation_name, tab_name, questions)
     if st.session_state[f"{tab_name}_feedback_saved"] == True:
         st.success("Återkoppling sparad. Tack!")
 
@@ -571,7 +571,7 @@ def post_selected_occupation(id_occupation):
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
 
-        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB)."
+        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB) och aktuell nationell eller regional prognos som illustreras med pil."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
