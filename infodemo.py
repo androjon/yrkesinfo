@@ -1,12 +1,13 @@
-#En ny demo för malmö med skåne som ifyllt
-#Framtiden en knapp för att gå från närliggande till valt yrke
-
 import streamlit as st
 import json
 import requests
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
 from wordcloud import WordCloud
+import datetime
+from google.cloud import storage
+from google.oauth2 import service_account
+from aub_susa import import_aub_from_susa
 
 @st.cache_data
 def import_data(filename):
@@ -21,7 +22,7 @@ def fetch_data():
         st.session_state.valid_occupations[value["preferred_label"]] = key
     st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
-    st.session_state.aub_data = import_data("SUSA_AUB.json")
+    st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
     st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
@@ -38,6 +39,51 @@ def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
         st.session_state.adwords_occupation = {}
+
+        credentials_dict = st.secrets["gcp_service_account"]
+        st.session_state.credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+
+def load_feedback():
+    """Ladda befintlig feedback från GCS."""
+    storage_client = storage.Client(credentials = st.session_state.credentials, project = st.session_state.credentials.project_id)
+    bucket = storage_client.bucket("androjons_bucket")
+    blob = bucket.blob("feedback.json")
+
+    if blob.exists():
+        data = blob.download_as_text()
+        return json.loads(data)
+    else:
+        return []
+
+def save_feedback(feedback_data):
+    """Spara feedback till GCS."""
+    storage_client = storage.Client(credentials = st.session_state.credentials, project = st.session_state.credentials.project_id)
+    bucket = storage_client.bucket("androjons_bucket")
+    blob = bucket.blob("feedback.json")
+    json_string = json.dumps(feedback_data, indent = 2, ensure_ascii = False)
+    json_bytes = json_string.encode("utf-8")
+    blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
+
+@st.dialog("Återkoppling")
+def dialog_(selected_occupation, tab_name, questions):
+    stars = st.feedback("stars", key = f"{tab_name}_stars")
+    answers = {}
+    for q in questions:
+        answers[q] = st.text_area(label = q, key = f"{q}")
+
+    if st.button("Spara återkoppling", key=f"{tab_name}_save_button"):
+        feedback = load_feedback()
+        new_entry = {
+            "tid": datetime.datetime.now().isoformat(),
+            "selected_occupation": selected_occupation,
+            "selected_tab": tab_name,
+            "kommentarer": answers
+        }
+        if stars is not None:
+            new_entry["stars"] = stars
+        feedback.append(new_entry)
+        save_feedback(feedback)
+        st.rerun()
 
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
@@ -301,8 +347,9 @@ def post_selected_occupation(id_occupation):
     else:
         yrkessamling = None
 
+    tab_names = ["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken"]
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken"])
+    tab1, tab2, tab3, tab4 = st.tabs(tab_names)
 
     with tab1:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -367,6 +414,9 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
+        if st.button("Återkoppla", key = "btn_tab1"):
+            dialog_(occupation_name, tab_names[0], ["Vad är bra/dåligt?", "Vad saknas/är överflödigt?"])
+
     with tab2:
         field_string = f"{occupation_field} (yrkesområde)"
         group_string = f"{occupation_group} (yrkesgrupp)"
@@ -413,7 +463,8 @@ def post_selected_occupation(id_occupation):
         with a:
             c, d, e = st.columns(3)
 
-        index_förvald_region = valid_regions.index("Skåne län")
+        #index_förvald_region = valid_regions.index("Skåne län")
+        index_förvald_region = None
 
         selected_region = b.selectbox(
         "Regional avgränsning", (valid_regions), index = index_förvald_region)
@@ -440,6 +491,9 @@ def post_selected_occupation(id_occupation):
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
+
+        if st.button("Återkoppla", key = "btn_tab2"):
+            dialog_(occupation_name, tab_names[1], ["Känns informationen relevant?"])
 
     with tab3:
         if barometer:
@@ -469,10 +523,13 @@ def post_selected_occupation(id_occupation):
             for e in educational_string:
                 st.markdown(e[0], unsafe_allow_html = True, help = e[1])
 
-        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Informationen här är inte alltid uppdaterad."
+        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
+
+        if st.button("Återkoppla", key = "btn_tab3"):
+            dialog_(occupation_name, tab_names[2], ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"])
 
     with tab4:
         field_string = f"{occupation_field} (yrkesområde)"
@@ -531,6 +588,9 @@ def post_selected_occupation(id_occupation):
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
+
+        if st.button("Återkoppla", key = "btn_tab4"):
+            dialog_(occupation_name, tab_names[3], ["Känns närliggande yrken och informationen relevant?"])
 
 def choose_occupation_name():
     show_initial_information()
