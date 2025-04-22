@@ -86,6 +86,13 @@ def dialog_(selected_occupation, tab_name, questions):
         st.session_state[f"{tab_name}_feedback_saved"] = True
         st.rerun()
 
+@st.fragment
+def create_feedback(occupation_name, tab_name, questions, selected_location = None):
+    if st.button("Återkoppla", key = f"{tab_name}_button"):
+        dialog_(occupation_name, tab_name, questions, selected_location)
+    if st.session_state[f"{tab_name}_feedback_saved"] == True:
+        st.success("Återkoppling sparad. Tack!")
+
 def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, reglerad = None):
     SHORT_ELBOW = "└─"
     SPACE_PREFIX = "&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -414,10 +421,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
-        if st.button("Återkoppla", key = "btn_tab1"):
-            dialog_(occupation_name, tab_names[0], ["Vad är bra/dåligt?", "Vad saknas/är överflödigt?"])
-        if st.session_state[f"{tab_names[0]}_feedback_saved"] == True:
-            st.success("Återkoppling sparad. Tack!")
+        feedback_questions = ["Vad är bra/dåligt?", "Vad saknas/är överflödigt?"]
+        create_feedback(occupation_name, tab_names[0], feedback_questions)
 
     with tab2:
         if barometer:
@@ -482,10 +487,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
-        if st.button("Återkoppla", key = "btn_tab2"):
-            dialog_(occupation_name, tab_names[1], ["Känns informationen relevant?"])
-        if st.session_state[f"{tab_names[1]}_feedback_saved"] == True:
-            st.success("Återkoppling sparad. Tack!")
+        feedback_questions = ["Känns informationen relevant?"]
+        create_feedback(occupation_name, tab_names[1], feedback_questions)
 
     with tab3:
         if barometer:
@@ -518,10 +521,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
-        if st.button("Återkoppla", key = "btn_tab3"):
-            dialog_(occupation_name, tab_names[2], ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"])
-        if st.session_state[f"{tab_names[2]}_feedback_saved"] == True:
-            st.success("Återkoppling sparad. Tack!")
+        feedback_questions = ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"]
+        create_feedback(occupation_name, tab_names[2], feedback_questions)
 
     with tab4:
         if barometer:
@@ -575,10 +576,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
-        if st.button("Återkoppla", key = "btn_tab4"):
-            dialog_(occupation_name, tab_names[3], ["Känns närliggande yrken och informationen relevant?"])
-        if st.session_state[f"{tab_names[3]}_feedback_saved"] == True:
-            st.success("Återkoppling sparad. Tack!")
+        feedback_questions = ["Känns närliggande yrken och informationen relevant?"]
+        create_feedback(occupation_name, tab_names[3], feedback_questions)
 
 def choose_occupation_name():
     show_initial_information()
