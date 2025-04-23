@@ -322,7 +322,9 @@ def create_similar_occupations(ssyk_source, region_id):
         else:
             similar_2[name_similar] = [k, overlap, description_string]
 
-    return similar_1, similar_2
+    sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
+    sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
+    return sorted_similar_1, sorted_similar_2
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
