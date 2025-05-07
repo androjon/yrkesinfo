@@ -8,6 +8,11 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
+#from import_ads_platsbanken import import_ads
+
+# @st.cache_data
+# def import_plastbanken():
+#     st.session_state_ad_data_platsbanken = import_ads()
 
 @st.cache_data
 def import_data(filename):
@@ -24,7 +29,8 @@ def fetch_data():
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
-    st.session_state.regional_ads = import_data("ssyk_id_region_annonser_2024.json")
+    st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
+    st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
@@ -259,7 +265,7 @@ def create_wordcloud(words):
     st.pyplot(plt)
 
 def get_adds(occupation, region):
-    ads_selected_occupation = st.session_state.regional_ads.get(occupation)
+    ads_selected_occupation = st.session_state.ad_data_historical.get(occupation)
     if ads_selected_occupation:
         ads_selected_region = ads_selected_occupation.get(region)
         if not ads_selected_region:
@@ -301,14 +307,10 @@ def create_similar_occupations(ssyk_source, region_id):
             occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
             if occupation_forecast:
                 regional_forecast = occupation_forecast.get(region_id)
-                if regional_forecast:
-                    if regional_forecast == "små":
-                        arrow = "\u2193"
-                    elif regional_forecast == "medelstora":
-                        arrow = "\u2192"
-                    elif regional_forecast == "stora":
-                        arrow = "\u2191"
-                    name_similar = f"{name_similar} {arrow}"
+                if regional_forecast is not None:
+                    pil_dict = {"öka": "\u2191", "minska": "\u2193", "vara oförändrad": "\u2192"}
+                    pil = pil_dict.get(regional_forecast[1].lower(), "")
+                    name_similar = f"{name_similar} {pil}"
 
         if info_similar["esco_description"] == True:
             description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
