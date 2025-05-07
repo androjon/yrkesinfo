@@ -178,6 +178,8 @@ def create_regional_link(id_group, id_region = None):
         return link
 
 def get_ads(occupation, location):
+    if not location:
+        location = "i46j_HmG_v64"
     ads = [0, 0]
     ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
     if ads_selected_occupation:
