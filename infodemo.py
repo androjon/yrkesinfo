@@ -141,32 +141,56 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, 
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
 
-@st.cache_data
-def fetch_number_of_ads(url):
-    response = requests.get(url)
-    data = response.text
-    json_data = json.loads(data)
-    data_total = json_data["total"]
-    number_of_ads = list(data_total.values())[0]
-    return number_of_ads
+# @st.cache_data
+# def fetch_number_of_ads(url):
+#     response = requests.get(url)
+#     data = response.text
+#     json_data = json.loads(data)
+#     data_total = json_data["total"]
+#     number_of_ads = list(data_total.values())[0]
+#     return number_of_ads
 
-def create_link_addnumbers(id_group, id_region = None):
+# def create_link_addnumbers(id_group, id_region = None):
+#     if id_region == "i46j_HmG_v64":
+#         id_region = None
+#     adlink = "https://jobsearch.api.jobtechdev.se/search?"
+#     end = "&limit=0"
+#     if id_region:
+#         url = adlink + "occupation-group=" + id_group + "&region=" + id_region + end
+#     else:
+#         url = adlink + "occupation-group=" + id_group + end
+#     number_of_ads = fetch_number_of_ads(url)
+#     link = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
+#     if id_region:
+#         region = "&l=2:" + id_region
+#         return link + region, number_of_ads
+#     else:
+#         return link, number_of_ads
+    
+def create_regional_link(id_group, id_region = None):
     if id_region == "i46j_HmG_v64":
         id_region = None
-    adlink = "https://jobsearch.api.jobtechdev.se/search?"
-    end = "&limit=0"
-    if id_region:
-        url = adlink + "occupation-group=" + id_group + "&region=" + id_region + end
-    else:
-        url = adlink + "occupation-group=" + id_group + end
-    number_of_ads = fetch_number_of_ads(url)
     link = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
     if id_region:
         region = "&l=2:" + id_region
-        return link + region, number_of_ads
+        return link + region
     else:
-        return link, number_of_ads
-    
+        return link
+
+def get_ads(occupation, location):
+    ads = [0, 0]
+    ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
+    if ads_selected_occupation:
+        ads_selected_location = ads_selected_occupation.get(location)
+        if ads_selected_location:
+            ads[0] = ads_selected_location
+    ads_selected_occupation_historical = st.session_state.ad_data_historical.get(occupation)
+    if ads_selected_occupation_historical:
+        ads_selected_location_historical = ads_selected_occupation_historical.get(location)
+        if ads_selected_location_historical:
+            ads[1] = ads_selected_location_historical
+    return ads
+
 def add_hoover_to_string(skill):
     hover_info = st.session_state.competence_descriptions.get(skill)
     if not hover_info:
@@ -264,17 +288,17 @@ def create_wordcloud(words):
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
 
-def get_adds(occupation, region):
-    ads_selected_occupation = st.session_state.ad_data_historical.get(occupation)
-    if ads_selected_occupation:
-        ads_selected_region = ads_selected_occupation.get(region)
-        if not ads_selected_region:
-            ads_selected_region = 0
+# def get_ads(occupation, region):
+#     ads_selected_occupation = st.session_state.ad_data_historical.get(occupation)
+#     if ads_selected_occupation:
+#         ads_selected_region = ads_selected_occupation.get(region)
+#         if not ads_selected_region:
+#             ads_selected_region = 0
 
-    if not ads_selected_occupation:
-        ads_selected_region = 0
+#     if not ads_selected_occupation:
+#         ads_selected_region = 0
     
-    return ads_selected_region
+#     return ads_selected_region
 
 def create_similar_occupations(ssyk_source, region_id):
     similar_1 = {}
@@ -478,11 +502,17 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
-        ads_selected_region = get_adds(occupation_group_id, selected_region_id)
-        link, ads_now = create_link_addnumbers(occupation_group_id, selected_region_id)
+        ads = get_ads(occupation_group_id, selected_region_id)
+        link = create_regional_link(occupation_group_id, selected_region_id)
 
-        c.metric(label = "Platsbanken", value = ads_now)
-        d.metric(label = "2024", value = ads_selected_region)
+        c.metric(label = "Platsbanken", value = ads[0])
+        d.metric(label = "2024", value = ads[1])
+
+        # ads_selected_region = get_ads(occupation_group_id, selected_region_id)
+        # link, ads_now = create_link_addnumbers(occupation_group_id, selected_region_id)
+
+        # c.metric(label = "Platsbanken", value = ads_now)
+        # d.metric(label = "2024", value = ads_selected_region)
 
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
         
