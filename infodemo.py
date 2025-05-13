@@ -1,5 +1,3 @@
-#Lägg till lön, importera filen "ssyk_salary.json"
-#Lägg till no_educational_requirement
 #Ändra vyn popover, samma text som i venn, knapp och skapa venn efter tryck
 
 import streamlit as st
@@ -443,7 +441,7 @@ def post_selected_occupation(id_occupation):
     occupation_field = info["occupation_field"]
     ssyk_code = occupation_group[0:4]
     aub = st.session_state.aub_data.get(ssyk_code)
-
+    
     field_string = f"{occupation_field} (yrkesområde)"
     group_string = f"{occupation_group} (yrkesgrupp)"
     occupation_string = f"{occupation_name} (yrkesbenämning)"
@@ -714,11 +712,11 @@ def choose_occupation_name():
     a, b = st.columns(spec = [0.7, 0.3])
         
     with b:
-        selection = st.segmented_control("Visa bara",
-                                         options = "Yrken utan utbildningskrav",
-                                         selection_mode = "single")
+        st.markdown(f"<p style='font-size:12px;'> .</p>", unsafe_allow_html=True)
+        no_ed_req = st.toggle(":small[Utan utbildningskrav]",
+                              help = "Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning.")
         
-    if not selection == None:
+    if no_ed_req:
         with a:
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
