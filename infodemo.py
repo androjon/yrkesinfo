@@ -719,28 +719,21 @@ def choose_occupation_name():
                                          selection_mode = "single")
         
     if not selection == None:
-        st.session_state.only_occupations_no_educational_req = True
         with a:
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
                 (st.session_state.valid_occupations_names_no_educational_req), placeholder = "", index = None)
-            
-        if selected_occupation_name:
-            plt.close("all")
-            id_selected_occupation = st.session_state.valid_occupations_no_educational_req.get(selected_occupation_name)
-            post_selected_occupation(id_selected_occupation)
-            
+                        
     else:
-        st.session_state.only_occupations_no_educational_req = False
         with a:
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
                 (st.session_state.valid_occupation_names), placeholder = "", index = None)
 
-        if selected_occupation_name:
-            plt.close("all")
-            id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
-            post_selected_occupation(id_selected_occupation)
+    if selected_occupation_name:
+        plt.close("all")
+        id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
+        post_selected_occupation(id_selected_occupation)
 
 def main ():
     initiate_session_state()
