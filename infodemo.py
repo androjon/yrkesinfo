@@ -1,5 +1,11 @@
+#Lägg till lön, importera filen "ssyk_salary.json"
+#Lägg till no_educational_requirement
+#Ändra vyn popover, samma text som i venn, knapp och skapa venn efter tryck
+
 import streamlit as st
+import re
 import json
+import math
 import requests
 from matplotlib import pyplot as plt
 from matplotlib_venn import venn2
@@ -8,11 +14,6 @@ import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
-#from import_ads_platsbanken import import_ads
-
-# @st.cache_data
-# def import_plastbanken():
-#     st.session_state_ad_data_platsbanken = import_ads()
 
 @st.cache_data
 def import_data(filename):
@@ -25,7 +26,10 @@ def fetch_data():
     st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     for key, value in st.session_state.occupationdata.items():
         st.session_state.valid_occupations[value["preferred_label"]] = key
+        if value["no_educational_requirement"] == True:
+            st.session_state.valid_occupations_no_educational_req[value["preferred_label"]] = key
     st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
+    st.session_state.valid_occupations_names_no_educational_req = sorted(list(st.session_state.valid_occupations_no_educational_req.keys()))
     st.session_state.adwords = import_data("all_wordclouds_v25.json")
     st.session_state.aub_data = import_aub_from_susa()
     st.session_state.regions = import_data("region_name_id.json")
@@ -34,6 +38,11 @@ def fetch_data():
     st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     st.session_state.labour_flow = import_data("labour_flow_data.json")
     st.session_state.forecast = import_data("barometer_regional.json")
+    st.session_state.locations_id = import_data("ort_namn_id.json")
+    st.session_state.valid_locations = list(st.session_state.locations_id.keys())
+    st.session_state.geodata = import_data("ort_ort_relevans.json")
+    st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+    st.session_state.ssyk_salary = import_data("ssyk_salary.json")
 
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
@@ -44,6 +53,7 @@ def show_initial_information():
 def initiate_session_state():
     if "valid_occupations" not in st.session_state:
         st.session_state.valid_occupations = {}
+        st.session_state.valid_occupations_no_educational_req = {}
         st.session_state.adwords_occupation = {}
 
         credentials_dict = st.secrets["gcp_service_account"]
@@ -71,7 +81,7 @@ def save_feedback(feedback_data):
     blob.upload_from_string(json_bytes, content_type = "application/json; charset=utf-8")
 
 @st.dialog("Återkoppling")
-def dialog_(selected_occupation, tab_name, questions, ):
+def dialog_(selected_occupation, tab_name, questions, selected_location = None):
     stars = st.feedback("stars", key = f"{tab_name}_stars")
     answers = {}
     for q in questions:
@@ -83,19 +93,22 @@ def dialog_(selected_occupation, tab_name, questions, ):
             "tid": datetime.datetime.now().isoformat(),
             "selected_occupation": selected_occupation,
             "selected_tab": tab_name,
-            "kommentarer": answers
+            "kommentarer": answers,
+            "version": "Allmän"
         }
         if stars is not None:
             new_entry["stars"] = stars
+        if selected_location is not None:
+            new_entry["selected_location"] = selected_location
         feedback.append(new_entry)
         save_feedback(feedback)
         st.session_state[f"{tab_name}_feedback_saved"] = True
         st.rerun()
 
 @st.fragment
-def create_feedback(occupation_name, tab_name, questions):
+def create_feedback(occupation_name, tab_name, questions, selected_location = None):
     if st.button(f"Återkoppla {tab_name}", key = f"{tab_name}_button"):
-        dialog_(occupation_name, tab_name, questions)
+        dialog_(occupation_name, tab_name, questions, selected_location)
     if st.session_state[f"{tab_name}_feedback_saved"] == True:
         st.success("Återkoppling sparad. Tack!")
 
@@ -140,32 +153,6 @@ def create_tree(field, group, occupation, barometer, bold, yrkessamling = None, 
     string = "<br />".join(strings)
     tree = f"<p style='font-size:16px;'>{string}</p>"
     return tree
-
-# @st.cache_data
-# def fetch_number_of_ads(url):
-#     response = requests.get(url)
-#     data = response.text
-#     json_data = json.loads(data)
-#     data_total = json_data["total"]
-#     number_of_ads = list(data_total.values())[0]
-#     return number_of_ads
-
-# def create_link_addnumbers(id_group, id_region = None):
-#     if id_region == "i46j_HmG_v64":
-#         id_region = None
-#     adlink = "https://jobsearch.api.jobtechdev.se/search?"
-#     end = "&limit=0"
-#     if id_region:
-#         url = adlink + "occupation-group=" + id_group + "&region=" + id_region + end
-#     else:
-#         url = adlink + "occupation-group=" + id_group + end
-#     number_of_ads = fetch_number_of_ads(url)
-#     link = f"https://arbetsformedlingen.se/platsbanken/annonser?p=5:{id_group}&q="
-#     if id_region:
-#         region = "&l=2:" + id_region
-#         return link + region, number_of_ads
-#     else:
-#         return link, number_of_ads
     
 def create_regional_link(id_group, id_region = None):
     if id_region == "i46j_HmG_v64":
@@ -177,21 +164,38 @@ def create_regional_link(id_group, id_region = None):
     else:
         return link
 
-def get_ads(occupation, location):
-    if not location:
-        location = "i46j_HmG_v64"
-    ads = [0, 0]
-    ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
-    if ads_selected_occupation:
-        ads_selected_location = ads_selected_occupation.get(location)
-        if ads_selected_location:
-            ads[0] = ads_selected_location
-    ads_selected_occupation_historical = st.session_state.ad_data_historical.get(occupation)
-    if ads_selected_occupation_historical:
-        ads_selected_location_historical = ads_selected_occupation_historical.get(location)
-        if ads_selected_location_historical:
-            ads[1] = ads_selected_location_historical
-    return ads
+def split_town_municipality(town_municipality):
+    town_municipality_split = town_municipality.split(";")
+    municipality_id = town_municipality_split[1]
+    municipality_name = st.session_state.municipality_id_namn.get(municipality_id)
+    town_split = town_municipality_split[0]
+    city_name = ' '.join(re.split("_", town_split))
+    town_with_municipality = f"{city_name.capitalize()} ({municipality_name.capitalize()})"
+    return town_with_municipality, f"{municipality_name} kommun"
+
+def create_list_locations(id_location):
+    list_relevant_locations = st.session_state.geodata.get(id_location)
+    selected_town_with_municipality, municipality_name = split_town_municipality(id_location)
+
+    all_locations = [{
+        "town_with_municipality": selected_town_with_municipality,
+        "municipality": municipality_name,
+        "distance": 0,
+        "relevance": "hög"}]
+    
+    order = {"hög": 0, "medel": 1, "låg": 2}
+    sorted_relevant_locations = sorted(list_relevant_locations, key = lambda x: (order.get(x["relevans"], 3), x["avstånd"]))
+
+    for l in sorted_relevant_locations:
+        town_with_municipality, municipality_name = split_town_municipality(l["ort2_id"])
+
+        relevant_location = {
+        "town_with_municipality": town_with_municipality,
+        "municipality": municipality_name,
+        "distance": l["avstånd"],
+        "relevance": l["relevans"]}
+        all_locations.append(relevant_location)
+    return all_locations
 
 def add_hoover_to_string(skill):
     hover_info = st.session_state.competence_descriptions.get(skill)
@@ -242,6 +246,20 @@ def create_educational_string(data):
         strings.append([edu_string, hover_info])
     return strings
 
+def create_string_chosen_location(data):
+    location_string = f"<p style='font-size:16px;'><strong>{data['town_with_municipality']}</strong></p>"
+    return location_string
+
+def create_string_location(data):
+    location_string = f"<p style='font-size:16px;'><strong>{data['town_with_municipality']}</strong><br />&emsp;&emsp;&emsp;<small>{data['distance']} kilometer - {data['relevance'].upper()} relevans</small></p>"
+    if data["relevance"] == "hög":
+        hover_string = "Hög relevans: Närhet till stor ort med många platsannonser förra året och stor arbetskraft/befolkning"
+    elif data["relevance"] == "medel":
+        hover_string = "Medel relevans: Mindre orter, eller större orter som ligger längre bort"
+    else:
+        hover_string = "Låg relevans: Små orter med svagare möjligheter till jobb"
+    return location_string, hover_string
+
 def create_venn_data(a_name, a_words, b_name, b_words, degree_of_overlap):
     if degree_of_overlap == 1:
         common_max = 14
@@ -290,17 +308,85 @@ def create_wordcloud(words):
     plt.tight_layout(pad = 0)
     st.pyplot(plt)
 
-# def get_ads(occupation, region):
-#     ads_selected_occupation = st.session_state.ad_data_historical.get(occupation)
-#     if ads_selected_occupation:
-#         ads_selected_region = ads_selected_occupation.get(region)
-#         if not ads_selected_region:
-#             ads_selected_region = 0
+def get_ads(occupation, location):
+    ads = [0, 0]
+    ads_selected_occupation = st.session_state.ad_data_platsbanken.get(occupation)
+    if ads_selected_occupation:
+        ads_selected_location = ads_selected_occupation.get(location)
+        if ads_selected_location:
+            ads[0] = ads_selected_location
+    ads_selected_occupation_historical = st.session_state.ad_data_historical.get(occupation)
+    if ads_selected_occupation_historical:
+        ads_selected_location_historical = ads_selected_occupation_historical.get(location)
+        if ads_selected_location_historical:
+            ads[1] = ads_selected_location_historical
+    return ads
 
-#     if not ads_selected_occupation:
-#         ads_selected_region = 0
-    
-#     return ads_selected_region
+def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link):
+    överlapp_popover_dict = {0: "\U000025D4", 0.5: "\U000025D1", 1: "\U000025D5"}
+    name_similar_f = f"{namn} {överlapp_popover_dict.get(överlappningsgrad, 0)}"
+    överlapp_dict = {0: 25, 0.5: 50, 1: 75}
+    fyllnadsnivå = överlapp_dict.get(överlappningsgrad, 0)
+    fyllnadsgrad = fyllnadsnivå / 100 * 360
+
+    scb_text = " (SCB)" if scb else ""
+    name_similar_f = f"{name_similar_f}{scb_text}"
+
+    if prognos is not None:
+        pil_dict = {"öka": "\u2191", "minska": "\u2193", "vara oförändrad": "\u2192"}
+        pil = pil_dict.get(prognos[1].lower(), "")
+        name_similar_f = f"{name_similar_f}{pil_dict.get(prognos[1].lower())}"
+        jobbmojlighet_färg = {"små": "#ffffff", "medelstora": "#B7DB92", "stora": "#7EC03C"}
+        färg = jobbmojlighet_färg.get(prognos[0].lower(), "#ffffff")
+
+        #Cirkeln justeras lite uppåt. 1px.
+        färg_html = f'<div style="display:inline-block;width:0.9em;height:0.9em;background-color:{färg};border-radius:50%;border:1px solid black;margin-left:6px;vertical-align:middle;position:relative;top:-1px;"></div>'
+        
+    else:
+        pil = ""
+        färg_html = ""
+
+    annonser_idag, annonser_2024 = annonser
+    annons_er_plats = "annons" if annonser_idag == 1 else "annonser"
+
+    first_row_html = f"""
+    <div style="display: flex; align-items: center; font-size: 16px; font-family: sans-serif;">
+        <span style="margin-right: 0.5em;">{namn}{scb_text}</span>
+        <div style="
+            width: 1em;
+            height: 1em;
+            border-radius: 50%;
+            background: conic-gradient(black 0deg {fyllnadsgrad}deg, white {fyllnadsgrad}deg 360deg);
+            border: 1px solid #666;
+            margin-right: 0.5em;">
+        </div>
+        <span>{pil}</span>
+    </div>
+    """
+
+    first_row_bold_html = first_row_html.replace(f">{namn}", f"><strong>{namn}</strong>")
+
+    second_row_html = f"""
+    <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
+        &emsp;&emsp;&emsp;
+        {färg_html}&nbsp;
+        {annonser_idag} {annons_er_plats} 
+        <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">
+            Platsbanken
+        </a> 
+        (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>)
+    </div>
+    """
+
+
+    full_html = f"""
+    <div style="margin-bottom: 14px;">
+        {first_row_bold_html}
+        {second_row_html}
+    </div>
+    """
+
+    return full_html, name_similar_f
 
 def create_similar_occupations(ssyk_source, region_id):
     similar_1 = {}
@@ -310,33 +396,28 @@ def create_similar_occupations(ssyk_source, region_id):
         info_similar = st.session_state.occupationdata.get(k)
         name_similar = info_similar["preferred_label"]
         similar_description = info_similar["description"]
-        overlap = v
+        similar_group_id = info_similar["occupation_group_id"]
 
-        few_overlaps = "\U000025D4"
-        overlaps = "\U000025D1"
-        many_overlaps = "\U000025D5"
-
-        if overlap == 0:
-            name_similar = f"{name_similar} {few_overlaps}"
-        elif overlap == 0.5:
-            name_similar = f"{name_similar} {overlaps}"
-        else:
-            name_similar = f"{name_similar} {many_overlaps}"
-
+        labour_flow = False
         occupation_group = info_similar["occupation_group"]
         ssyk_similar = occupation_group[0:4]
         labour_flow_ssyk = st.session_state.labour_flow.get(ssyk_source)
         if ssyk_similar in labour_flow_ssyk:
-            name_similar = f"{name_similar} (SCB)"
+            labour_flow = True
 
         if info_similar["barometer_id"]:
             occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
             if occupation_forecast:
                 regional_forecast = occupation_forecast.get(region_id)
-                if regional_forecast is not None:
-                    pil_dict = {"öka": "\u2191", "minska": "\u2193", "vara oförändrad": "\u2192"}
-                    pil = pil_dict.get(regional_forecast[1].lower(), "")
-                    name_similar = f"{name_similar} {pil}"
+            else:
+                regional_forecast = None
+        else:
+            regional_forecast = None
+
+        ads = get_ads(similar_group_id, region_id)
+
+        similar_string, name_similar_f = render_job_info_html(
+            name_similar, v, labour_flow, regional_forecast, ads, create_regional_link(similar_group_id, region_id))
 
         if info_similar["esco_description"] == True:
             description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
@@ -345,10 +426,10 @@ def create_similar_occupations(ssyk_source, region_id):
             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
         if ssyk_similar in labour_flow_ssyk:
-            similar_1[name_similar] = [k, overlap, description_string]
+            similar_1[name_similar_f] = [k, v, description_string, similar_string, name_similar]
 
         else:
-            similar_2[name_similar] = [k, overlap, description_string]
+            similar_2[name_similar_f] = [k, v, description_string, similar_string, name_similar]
 
     sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
@@ -451,7 +532,7 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_yrke}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Vad är bra/dåligt?", "Vad saknas/är överflödigt?"]
+        feedback_questions = ["Vad saknar du i svaret när du väljer ett yrke?", "Är det någon information som är överflödig?", "Om du tycker att yrkesinfo är ett bra redskap, var tycker du att den skall finnas för att vara till mest nytta?"]
         create_feedback(occupation_name, tab_names[0], feedback_questions)
 
     with tab2:
@@ -507,23 +588,31 @@ def post_selected_occupation(id_occupation):
         ads = get_ads(occupation_group_id, selected_region_id)
         link = create_regional_link(occupation_group_id, selected_region_id)
 
+
+
         c.metric(label = "Platsbanken", value = ads[0])
         d.metric(label = "2024", value = ads[1])
 
-        # ads_selected_region = get_ads(occupation_group_id, selected_region_id)
-        # link, ads_now = create_link_addnumbers(occupation_group_id, selected_region_id)
-
-        # c.metric(label = "Platsbanken", value = ads_now)
-        # d.metric(label = "2024", value = ads_selected_region)
-
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
-        
-        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024."
+
+        st.subheader(f"Lön - {occupation_group}")
+
+        k, l, m = st.columns(3)
+
+        salary = st.session_state.ssyk_salary.get(ssyk_code)
+
+        salary_string1 = f"<p style='font-size:16px;'>10 % tjänar mindre än<br />Genomsnittslön<br />10% tjänar mer än</p>"
+        salary_string2 = f"<p style='font-size:16px;'><strong>{salary[0]}<br />{salary[1]}<br />{salary[2]}</strong></p>"
+
+        k.markdown(salary_string1, unsafe_allow_html = True)
+        l.markdown(salary_string2, unsafe_allow_html = True)
+
+        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024 och löner hämtade från SCB (2023)"
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Känns informationen relevant?"]
+        feedback_questions = ["Underlättar annonsantal och länk till Platsbanken ditt arbete?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[1], feedback_questions)
 
     with tab3:
@@ -557,7 +646,8 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?"]
+
+        feedback_questions = ["Är utbildningsstatistiken användbar och vad skulle göra den bättre?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[2], feedback_questions)
 
     with tab4:
@@ -586,23 +676,27 @@ def post_selected_occupation(id_occupation):
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
 
+            info_liknande_yrke_statistik = "Yrkesbenämningen följs av följande information på första raden: (SCB) om det är en statistisk yrkesväxling, cirkel som motsvarar annonsöverlappet, pil om det finns en bedömningen för hur efterfrågan på arbetskraft förväntas utvecklas på fem års sikt. På andra raden finns en cirkel om det finns en nulägesbedömningen för möjligheter till arbete (vit = små, ljusgrön = medel, grön = stora), följt av antal annonser i Platsbanken med en klickbar länk och antal annonser 2024."
+
             with col1:
                 st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
                 for key, value in similar_1.items():
                     with st.popover(key, use_container_width = True):
                         adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[2], unsafe_allow_html = True)                 
+                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)  
+                        st.markdown(value[2], unsafe_allow_html = True)               
 
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
                     with st.popover(key, use_container_width = True):
                         adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, key, adwords_similar, value[1])
+                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
                         st.pyplot(venn)
-                        st.markdown(value[2], unsafe_allow_html = True) 
+                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)
+                        st.markdown(value[2], unsafe_allow_html = True)     
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
@@ -612,18 +706,41 @@ def post_selected_occupation(id_occupation):
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
 
-        feedback_questions = ["Känns närliggande yrken och informationen relevant?"]
+        feedback_questions = ["Är fliken närliggande yrken en hjälp i samtal med sökande?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[3], feedback_questions)
 
 def choose_occupation_name():
     show_initial_information()
-    selected_occupation_name = st.selectbox(
-        "Välj en yrkesbenämning",
-        (st.session_state.valid_occupation_names), placeholder = "", index = None)
-    if selected_occupation_name:
-        plt.close("all")
-        id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
-        post_selected_occupation(id_selected_occupation)
+    a, b = st.columns(spec = [0.7, 0.3])
+        
+    with b:
+        selection = st.segmented_control("Visa bara",
+                                         options = "Yrken utan utbildningskrav",
+                                         selection_mode = "single")
+        
+    if not selection == None:
+        st.session_state.only_occupations_no_educational_req = True
+        with a:
+            selected_occupation_name = st.selectbox(
+                "Välj en yrkesbenämning",
+                (st.session_state.valid_occupations_names_no_educational_req), placeholder = "", index = None)
+            
+        if selected_occupation_name:
+            plt.close("all")
+            id_selected_occupation = st.session_state.valid_occupations_no_educational_req.get(selected_occupation_name)
+            post_selected_occupation(id_selected_occupation)
+            
+    else:
+        st.session_state.only_occupations_no_educational_req = False
+        with a:
+            selected_occupation_name = st.selectbox(
+                "Välj en yrkesbenämning",
+                (st.session_state.valid_occupation_names), placeholder = "", index = None)
+
+        if selected_occupation_name:
+            plt.close("all")
+            id_selected_occupation = st.session_state.valid_occupations.get(selected_occupation_name)
+            post_selected_occupation(id_selected_occupation)
 
 def main ():
     initiate_session_state()
