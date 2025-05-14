@@ -1,5 +1,3 @@
-#Ändra vyn popover, samma text som i venn, knapp och skapa venn efter tryck
-
 import streamlit as st
 import re
 import json
@@ -322,60 +320,53 @@ def get_ads(occupation, location):
 
 def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link):
     överlapp_popover_dict = {0: "\U000025D4", 0.5: "\U000025D1", 1: "\U000025D5"}
-    name_similar_f = f"{namn} {överlapp_popover_dict.get(överlappningsgrad, 0)}"
+    name_similar_f = f"{namn} {överlapp_popover_dict.get(överlappningsgrad, '')}"
     överlapp_dict = {0: 25, 0.5: 50, 1: 75}
     fyllnadsnivå = överlapp_dict.get(överlappningsgrad, 0)
     fyllnadsgrad = fyllnadsnivå / 100 * 360
 
+    överlappningscirkel = f'''
+    <span style="display:inline-block;width: 0.9em;height: 0.9em;border-radius: 50%;
+    background: conic-gradient(black 0deg {fyllnadsgrad}deg, white {fyllnadsgrad}deg 360deg);
+    border: 1px solid #666; margin-left: 6px; vertical-align: middle; position: relative; top: -1px;"></span>
+    '''
+
     scb_text = " (SCB)" if scb else ""
     name_similar_f = f"{name_similar_f}{scb_text}"
+
+    överlappning_html = f'&emsp;Annonsöverlapp närliggande yrke {överlappningscirkel}<br>'
 
     if prognos is not None:
         pil_dict = {"öka": "\u2191", "minska": "\u2193", "vara oförändrad": "\u2192"}
         pil = pil_dict.get(prognos[1].lower(), "")
-        name_similar_f = f"{name_similar_f}{pil_dict.get(prognos[1].lower())}"
         jobbmojlighet_färg = {"små": "#ffffff", "medelstora": "#B7DB92", "stora": "#7EC03C"}
         färg = jobbmojlighet_färg.get(prognos[0].lower(), "#ffffff")
-
-        #Cirkeln justeras lite uppåt. 1px.
         färg_html = f'<div style="display:inline-block;width:0.9em;height:0.9em;background-color:{färg};border-radius:50%;border:1px solid black;margin-left:6px;vertical-align:middle;position:relative;top:-1px;"></div>'
-        
-    else:
-        pil = ""
-        färg_html = ""
+        prognos_html = f'&emsp;Jobbmöjligheter{färg_html} Prognos <span>{pil}</span><br>'
 
     annonser_idag, annonser_2024 = annonser
     annons_er_plats = "annons" if annonser_idag == 1 else "annonser"
 
     first_row_html = f"""
     <div style="display: flex; align-items: center; font-size: 16px; font-family: sans-serif;">
-        <span style="margin-right: 0.5em;">{namn}{scb_text}</span>
-        <div style="
-            width: 1em;
-            height: 1em;
-            border-radius: 50%;
-            background: conic-gradient(black 0deg {fyllnadsgrad}deg, white {fyllnadsgrad}deg 360deg);
-            border: 1px solid #666;
-            margin-right: 0.5em;">
-        </div>
-        <span>{pil}</span>
+        <span style="margin-right: 0.5em;">{namn}</span>
     </div>
     """
 
     first_row_bold_html = first_row_html.replace(f">{namn}", f"><strong>{namn}</strong>")
+  
+    annonser_html = f'&emsp;{annonser_idag} {annons_er_plats} <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">Platsbanken</a> (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>)'
+
+    lines = [överlappning_html]
+    if prognos:
+        lines.append(f"<div style='margin-bottom: 2px;'>{prognos_html.strip()}</div>")
+    lines.append(f"<div>{annonser_html}</div>")
 
     second_row_html = f"""
     <div style="font-size: 13px; color: #333; margin-top: 2px; font-family: sans-serif;">
-        &emsp;&emsp;&emsp;
-        {färg_html}&nbsp;
-        {annonser_idag} {annons_er_plats} 
-        <a href="{link}" target="_blank" style="text-decoration: none; color: #0066cc;">
-            Platsbanken
-        </a> 
-        (<span style="font-variant-numeric: tabular-nums;">2024: {annonser_2024}</span>)
+        {''.join(lines)}
     </div>
     """
-
 
     full_html = f"""
     <div style="margin-bottom: 14px;">
@@ -383,7 +374,6 @@ def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link)
         {second_row_html}
     </div>
     """
-
     return full_html, name_similar_f
 
 def create_similar_occupations(ssyk_source, region_id):
@@ -432,6 +422,12 @@ def create_similar_occupations(ssyk_source, region_id):
     sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
     return sorted_similar_1, sorted_similar_2
+
+@st.dialog("Annonsöverlapp", width = "large")
+def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap, beskrivning):
+    venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
+    st.pyplot(venn)
+    st.markdown(beskrivning, unsafe_allow_html = True) 
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -674,32 +670,32 @@ def post_selected_occupation(id_occupation):
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
 
-            info_liknande_yrke_statistik = "Yrkesbenämningen följs av följande information på första raden: (SCB) om det är en statistisk yrkesväxling, cirkel som motsvarar annonsöverlappet, pil om det finns en bedömningen för hur efterfrågan på arbetskraft förväntas utvecklas på fem års sikt. På andra raden finns en cirkel om det finns en nulägesbedömningen för möjligheter till arbete (vit = små, ljusgrön = medel, grön = stora), följt av antal annonser i Platsbanken med en klickbar länk och antal annonser 2024."
-
             with col1:
                 st.markdown(f"<p style='font-size:16px;'>{headline_1}</p>", unsafe_allow_html=True)
                 for key, value in similar_1.items():
-                    with st.popover(key, use_container_width = True):
-                        adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
-                        st.pyplot(venn)
-                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)  
-                        st.markdown(value[2], unsafe_allow_html = True)               
-
+                    e, f = st.columns([3, 1])
+                    with e:
+                        e.markdown(value[3], unsafe_allow_html=True)
+                    with f:
+                        if st.button("", icon = ":material/join_inner:", key = key):
+                            adwords_similar = st.session_state.adwords.get(value[0])
+                            skapa_venn(occupation_name, value[4], adwords_similar, value[1], value[2])
+              
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
-                    with st.popover(key, use_container_width = True):
-                        adwords_similar = st.session_state.adwords.get(value[0])
-                        venn = create_venn(occupation_name, value[4], adwords_similar, value[1])
-                        st.pyplot(venn)
-                        st.markdown(value[3], unsafe_allow_html = True, help = info_liknande_yrke_statistik)
-                        st.markdown(value[2], unsafe_allow_html = True)     
+                    e, f = st.columns([3, 1])
+                    with e:
+                        e.markdown(value[3], unsafe_allow_html=True)
+                    with f:
+                        if st.button("", icon = ":material/join_inner:", key = key):
+                            adwords_similar = st.session_state.adwords.get(value[0])
+                            skapa_venn(occupation_name, value[4], adwords_similar, value[1], value[2])   
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
 
-        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, markeras med (SCB) och aktuell nationell eller regional prognos som illustreras med pil."
+        text_dataunderlag_närliggande_yrken = "<strong>Dataunderlag</strong><br />Närliggande yrken baseras på nyckelord i Historiska berikade annonser filtrerade med taxonomin. Träffsäkerheten i annonsunderlaget varierar och detta påverkar förstås utfallet. Andelen samma nyckelord markeras som lågt \U000025D4, medel \U000025D1 eller högt \U000025D5 överlapp. Dessa kompletteras med statistik över yrkesväxlingar från SCB, aktuell nationell eller regional prognos och annonsantal."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_yrken}</p>", unsafe_allow_html=True)
@@ -709,24 +705,35 @@ def post_selected_occupation(id_occupation):
 
 def choose_occupation_name():
     show_initial_information()
-    a, b = st.columns(spec = [0.7, 0.3])
-        
-    with b:
-        st.markdown(f"<p style='font-size:12px;'> .</p>", unsafe_allow_html=True)
-        no_ed_req = st.toggle(":small[Utan utbildningskrav]",
-                              help = "Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning.")
-        
-    if no_ed_req:
-        with a:
+    col1, col2 = st.columns([0.7, 0.3])
+
+    with col1:
+        if st.session_state.get("no_ed_req", False):
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
-                (st.session_state.valid_occupations_names_no_educational_req), placeholder = "", index = None)
-                        
-    else:
-        with a:
+                st.session_state.valid_occupations_names_no_educational_req,
+                placeholder="",
+                index=None
+            )
+        else:
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
-                (st.session_state.valid_occupation_names), placeholder = "", index = None)
+                st.session_state.valid_occupation_names,
+                placeholder="",
+                index=None
+            )
+
+    with col2:
+        st.markdown(
+            """<div style='margin-top: 2.1em;'>""",
+            unsafe_allow_html=True
+        )
+        no_ed_req = st.toggle(
+            ":small[Utan utbildningskrav]",
+            key="no_ed_req",
+            help="Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning."
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
     if selected_occupation_name:
         plt.close("all")
