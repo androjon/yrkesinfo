@@ -18,28 +18,6 @@ def import_data(filename):
     output = json.loads(content)
     return output
 
-def fetch_data():
-    st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
-    for key, value in st.session_state.occupationdata.items():
-        st.session_state.valid_occupations[value["preferred_label"]] = key
-        if value["no_educational_requirement"] == True:
-            st.session_state.valid_occupations_no_educational_req[value["preferred_label"]] = key
-    st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
-    st.session_state.valid_occupations_names_no_educational_req = sorted(list(st.session_state.valid_occupations_no_educational_req.keys()))
-    st.session_state.adwords = import_data("all_wordclouds_v25.json")
-    st.session_state.aub_data = import_aub_from_susa()
-    st.session_state.regions = import_data("region_name_id.json")
-    st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
-    st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
-    st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
-    st.session_state.labour_flow = import_data("labour_flow_data.json")
-    st.session_state.forecast = import_data("barometer_regional.json")
-    st.session_state.locations_id = import_data("ort_namn_id.json")
-    st.session_state.valid_locations = list(st.session_state.locations_id.keys())
-    st.session_state.geodata = import_data("ort_ort_relevans.json")
-    st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
-    st.session_state.ssyk_salary = import_data("ssyk_salary.json")
-
 def show_initial_information():
     st.logo("af-logotyp-rgb-540px.jpg")
     st.title(":primary[Yrkesinfo]")
@@ -47,13 +25,47 @@ def show_initial_information():
     st.markdown(f"<p style='font-size:12px;'>{initial_text}</p>", unsafe_allow_html=True)
 
 def initiate_session_state():
+    if "occupationdata" not in st.session_state:
+        st.session_state.occupationdata = import_data("all_valid_occupations_with_info_v25.json")
     if "valid_occupations" not in st.session_state:
-        st.session_state.valid_occupations = {}
-        st.session_state.valid_occupations_no_educational_req = {}
+        st.session_state.valid_occupations = import_data("valid_occupations.json")
+    if "valid_occupations_no_educational_req" not in st.session_state:
+        st.session_state.valid_occupations_no_educational_req = import_data("valid_occupations_no_educational_req.json")
+    if "adwords" not in st.session_state:
+        st.session_state.adwords = import_data("all_wordclouds_v25.json")
+    if "ad_data_historical" not in st.session_state:
+            st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
+    if "ad_data_platsbanken" not in st.session_state:
+            st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
+    if "competence_descriptions" not in st.session_state:
+            st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
+    if "labour_flow" not in st.session_state:
+            st.session_state.labour_flow = import_data("labour_flow_data.json")
+    if "forecast" not in st.session_state:
+            st.session_state.forecast = import_data("barometer_regional.json")
+    if "ssyk_salary" not in st.session_state:
+            st.session_state.ssyk_salary = import_data("ssyk_salary.json")
+    if "aub_data" not in st.session_state:
+            st.session_state.aub_data = import_aub_from_susa()
+    if "regions" not in st.session_state:
+            st.session_state.regions = import_data("region_name_id.json")
+    if "locations_id" not in st.session_state:
+            st.session_state.locations_id = import_data("ort_namn_id.json")
+    if "geodata" not in st.session_state:
+            st.session_state.geodata = import_data("ort_ort_relevans.json")
+    if "municipality_id_namn" not in st.session_state:
+            st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+    if "adwords_occupation" not in st.session_state:
         st.session_state.adwords_occupation = {}
-
+    if "credentials" not in st.session_state:
         credentials_dict = st.secrets["gcp_service_account"]
         st.session_state.credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    if "valid_occupation_names" not in st.session_state:
+        st.session_state.valid_occupation_names = sorted(list(st.session_state.valid_occupations.keys()))
+    if "valid_occupations_names_no_educational_req" not in st.session_state:
+        st.session_state.valid_occupations_names_no_educational_req = sorted(list(st.session_state.valid_occupations_no_educational_req.keys()))
+    if "valid_locations" not in st.session_state:
+        st.session_state.valid_locations = list(st.session_state.locations_id.keys())
 
 def load_feedback():
     """Ladda befintlig feedback från GCS."""
@@ -423,11 +435,59 @@ def create_similar_occupations(ssyk_source, region_id):
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
     return sorted_similar_1, sorted_similar_2
 
+@st.fragment
+def choose_related_locations(tab_name):
+    info = "Tätorter hämtas från SCB. Förslag på orter baseras på en bedömning om relevans som beräknas utifrån befolkningstäthet, annonser på Platsbanken historiskt och avstånd. Avstånd är fågelvägen. Datat är i en första version."
+    st.write(info)
+
+    valid_locations = sorted(st.session_state.valid_locations)
+    selected_location = st.selectbox(
+        "Välj en ort",
+        (valid_locations), placeholder = "", index = None)
+
+    if selected_location:
+        id_selected_location = st.session_state.locations_id.get(selected_location)
+
+        locations = create_list_locations(id_selected_location)
+
+        col3, col4 = st.columns(2)
+
+        relevant_locations = locations[1:]
+
+        antal_orter = len(relevant_locations)
+        n = math.ceil(antal_orter / 2)
+
+        locations_1 = relevant_locations[:n]
+        locations_2 = relevant_locations[n:]
+
+        with col3:
+            for l in locations_1:
+                string_location, hover_info = create_string_location(l)
+                st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+
+        with col4:
+            for l in locations_2:
+                string_location, hover_info = create_string_location(l)
+                st.markdown(string_location, unsafe_allow_html = True, help = hover_info)
+
+        text_dataunderlag_närliggande_orter = "<strong>Dataunderlag</strong><br />Relevanta pendlingsorter baseras på avstånd mellan orter från öppen geodata, befolkningstäthet och annonsantal i Historiska annonser."
+        
+        st.write("---")
+        st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_närliggande_orter}</p>", unsafe_allow_html=True)
+
+        feedback_questions = ["Är relevanta pendlingsorter en hjälp i diskussionen med sökande?", "Vad kan göra relevanta pendlingsorter bättre?"]
+        
+        create_feedback("", tab_name, feedback_questions, selected_location)
+
 @st.dialog("Annonsöverlapp", width = "large")
-def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap, beskrivning):
-    venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
+def visa_venn(venn, beskrivning):
     st.pyplot(venn)
     st.markdown(beskrivning, unsafe_allow_html = True) 
+
+def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap):
+    venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
+    return venn
+
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -462,9 +522,9 @@ def post_selected_occupation(id_occupation):
     else:
         yrkessamling = None
 
-    tab_names = ["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken"]
+    tab_names = ["Yrkesbeskrivning", "Jobbmöjligheter", "Utbildning", "Närliggande yrken", "Relevanta pendlingsorter"]
 
-    tab1, tab2, tab3, tab4 = st.tabs(tab_names)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(tab_names)
 
     for tab in tab_names:
         if f"{tab}_feedback_saved" not in st.session_state:
@@ -564,8 +624,9 @@ def post_selected_occupation(id_occupation):
         with a:
             c, d, e = st.columns(3)
 
-        #index_förvald_region = valid_regions.index("Skåne län")
-        index_förvald_region = None
+        index_förvald_region = valid_regions.index("Skåne län")
+        if not index_förvald_region:
+            index_förvald_region = None
 
         selected_region = b.selectbox(
         "Regional avgränsning", (valid_regions), index = index_förvald_region)
@@ -581,8 +642,6 @@ def post_selected_occupation(id_occupation):
 
         ads = get_ads(occupation_group_id, selected_region_id)
         link = create_regional_link(occupation_group_id, selected_region_id)
-
-
 
         c.metric(label = "Platsbanken", value = ads[0])
         d.metric(label = "2024", value = ads[1])
@@ -679,8 +738,9 @@ def post_selected_occupation(id_occupation):
                     with f:
                         if st.button("", icon = ":material/join_inner:", key = key):
                             adwords_similar = st.session_state.adwords.get(value[0])
-                            skapa_venn(occupation_name, value[4], adwords_similar, value[1], value[2])
-              
+                            venn = skapa_venn(occupation_name, value[4], adwords_similar, value[1])
+                            visa_venn(venn, value[2])
+             
             with col2:
                 st.markdown(f"<p style='font-size:16px;'>{headline_2}</p>", unsafe_allow_html=True)
                 for key, value in similar_2.items():
@@ -690,7 +750,8 @@ def post_selected_occupation(id_occupation):
                     with f:
                         if st.button("", icon = ":material/join_inner:", key = key):
                             adwords_similar = st.session_state.adwords.get(value[0])
-                            skapa_venn(occupation_name, value[4], adwords_similar, value[1], value[2])   
+                            venn = skapa_venn(occupation_name, value[4], adwords_similar, value[1])
+                            visa_venn(venn, value[2])
 
         else:
             st.subheader(f"Inte tillräckligt med data för att kunna visa närliggande yrken")
@@ -703,6 +764,10 @@ def post_selected_occupation(id_occupation):
         feedback_questions = ["Är fliken närliggande yrken en hjälp i samtal med sökande?", "Övrigt, skriv vad du vill"]
         create_feedback(occupation_name, tab_names[3], feedback_questions)
 
+    with tab5:
+        st.subheader("Relevanta pendlingsorter")
+        choose_related_locations(tab_names[4])
+
 def choose_occupation_name():
     show_initial_information()
     col1, col2 = st.columns([0.7, 0.3])
@@ -713,26 +778,22 @@ def choose_occupation_name():
                 "Välj en yrkesbenämning",
                 st.session_state.valid_occupations_names_no_educational_req,
                 placeholder="",
-                index=None
-            )
+                index=None)
         else:
             selected_occupation_name = st.selectbox(
                 "Välj en yrkesbenämning",
                 st.session_state.valid_occupation_names,
                 placeholder="",
-                index=None
-            )
+                index=None)
 
     with col2:
         st.markdown(
             """<div style='margin-top: 2.1em;'>""",
-            unsafe_allow_html=True
-        )
+            unsafe_allow_html=True)
         no_ed_req = st.toggle(
             ":small[Utan utbildningskrav]",
             key="no_ed_req",
-            help="Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning."
-        )
+            help="Yrken utan utbildningskrav är ett urval av yrken som vanligtvis inte kräver en yrkesutbildning.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     if selected_occupation_name:
@@ -742,7 +803,6 @@ def choose_occupation_name():
 
 def main ():
     initiate_session_state()
-    fetch_data()
     choose_occupation_name()
     
 if __name__ == '__main__':
