@@ -34,27 +34,29 @@ def initiate_session_state():
     if "adwords" not in st.session_state:
         st.session_state.adwords = import_data("all_wordclouds_v25.json")
     if "ad_data_historical" not in st.session_state:
-            st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
+        st.session_state.ad_data_historical = import_data("ssyk_region_kommun_annonser_2024.json")
     if "ad_data_platsbanken" not in st.session_state:
-            st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
+        st.session_state.ad_data_platsbanken = import_data("platsbanken.json")
     if "competence_descriptions" not in st.session_state:
-            st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
+        st.session_state.competence_descriptions = import_data("kompetens_beskrivning.json")
     if "labour_flow" not in st.session_state:
-            st.session_state.labour_flow = import_data("labour_flow_data.json")
+        st.session_state.labour_flow = import_data("labour_flow_data.json")
     if "forecast" not in st.session_state:
-            st.session_state.forecast = import_data("barometer_regional.json")
+        st.session_state.forecast = import_data("barometer_regional.json")
     if "ssyk_salary" not in st.session_state:
-            st.session_state.ssyk_salary = import_data("ssyk_salary.json")
+        st.session_state.ssyk_salary = import_data("ssyk_salary.json")
     if "aub_data" not in st.session_state:
-            st.session_state.aub_data = import_aub_from_susa()
+        st.session_state.aub_data = import_aub_from_susa()
     if "regions" not in st.session_state:
-            st.session_state.regions = import_data("region_name_id.json")
+        st.session_state.regions = import_data("region_name_id.json")
     if "locations_id" not in st.session_state:
-            st.session_state.locations_id = import_data("ort_namn_id.json")
+        st.session_state.locations_id = import_data("ort_namn_id.json")
     if "geodata" not in st.session_state:
-            st.session_state.geodata = import_data("ort_ort_relevans.json")
+        st.session_state.geodata = import_data("ort_ort_relevans.json")
     if "municipality_id_namn" not in st.session_state:
-            st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+        st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
+    if "occupation_id_dk_preflabel" not in st.session_state:
+        st.session_state.occupation_id_dk_preflabel = import_data("occupation_id_dk_preflabel.json")
     if "adwords_occupation" not in st.session_state:
         st.session_state.adwords_occupation = {}
     if "credentials" not in st.session_state:
@@ -488,6 +490,16 @@ def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap):
     venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
     return venn
 
+def create_dk_link(dk_name):
+    to_convert = {
+        "ø": "%25C3%25B8",
+        "æ": "%25C3%25A6",
+        "å": "%25C3%25A5",
+        " ": "%2520"}
+    for key, value in to_convert.items():
+        dk_name = re.sub(key, value, dk_name)
+    url = f"https://job.jobnet.dk/CV/FindWork?Offset=0&SortValue=BestMatch&Region=Hovedstaden%2520og%2520Bornholm&SearchString={dk_name}&SearchWithSimilarOccupations=true"
+    return url
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -647,6 +659,13 @@ def post_selected_occupation(id_occupation):
         d.metric(label = "2024", value = ads[1])
 
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
+
+        st.write("Nedan finns en länk till relaterade danska yrken")
+
+        dk_preflabel = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
+        if dk_preflabel:
+            dk_link = create_dk_link(dk_preflabel)
+            st.link_button(f"Danska Platsbanken - {dk_preflabel} - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
 
