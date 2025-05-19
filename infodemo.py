@@ -637,12 +637,8 @@ def post_selected_occupation(id_occupation):
         with a:
             c, d, e = st.columns(3)
 
-        #index_förvald_region = valid_regions.index("Skåne län")
-        if not index_förvald_region:
-            index_förvald_region = None
-
         selected_region = b.selectbox(
-        "Regional avgränsning", (valid_regions), index = index_förvald_region)
+        "Regional avgränsning", (valid_regions), index = None)
 
         if selected_region:
             if selected_region == "Sverige":
