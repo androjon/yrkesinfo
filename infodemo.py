@@ -11,6 +11,9 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
 
+#Ta bort name_similar_f som inte längre används
+#Se om det finns något att göra angående yrkesutbildningar och ssyk4
+
 @st.cache_data
 def import_data(filename):
     with open(filename) as file:
@@ -626,8 +629,6 @@ def post_selected_occupation(id_occupation):
         else:
             st.write(f"Ingen tillgänglig prognos")
 
-        st.subheader(f"Annonser - {occupation_group}")
-
         valid_regions = sorted(list(st.session_state.regions.keys()))
         valid_regions.append("Sverige")
 
@@ -636,7 +637,7 @@ def post_selected_occupation(id_occupation):
         with a:
             c, d, e = st.columns(3)
 
-        index_förvald_region = valid_regions.index("Skåne län")
+        #index_förvald_region = valid_regions.index("Skåne län")
         if not index_förvald_region:
             index_förvald_region = None
 
@@ -652,6 +653,8 @@ def post_selected_occupation(id_occupation):
             selected_region = "Sverige"
             selected_region_id = "i46j_HmG_v64"
 
+        st.subheader(f"Annonser - {occupation_group} - {selected_region}")
+
         ads = get_ads(occupation_group_id, selected_region_id)
         link = create_regional_link(occupation_group_id, selected_region_id)
 
@@ -660,12 +663,14 @@ def post_selected_occupation(id_occupation):
 
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
 
-        st.write("Nedan finns en länk till relaterade danska yrken")
+        if selected_region == "Skåne län":
+            st.write("")
+            st.write("Nedan finns en länk till danska annonser. Relaterat danskt yrke är inte kvalitetssäkrat och fungerar bara ibland.")
 
-        dk_preflabel = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
-        if dk_preflabel:
-            dk_link = create_dk_link(dk_preflabel)
-            st.link_button(f"Danska Platsbanken - {dk_preflabel} - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
+            dk_preflabel = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
+            if dk_preflabel:
+                dk_link = create_dk_link(dk_preflabel)
+                st.link_button(f"Jobnet.dk - {dk_preflabel} - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
 
@@ -679,7 +684,7 @@ def post_selected_occupation(id_occupation):
         k.markdown(salary_string1, unsafe_allow_html = True)
         l.markdown(salary_string2, unsafe_allow_html = True)
 
-        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024 och löner hämtade från SCB (2023)"
+        text_dataunderlag_jobbmöjligheter = "<strong>Dataunderlag</strong><br />Här presenteras först information från Arbetsförmedlingens Yrkesbarometer. Yrkesbarometern baseras i huvudsak på information från en enkätundersökning från Arbetsförmedlingen, Statistikmyndigheten SCB:s registerstatistik samt Arbetsförmedlingens verksamhetsstatistik. Yrkesbarometern innehåller nulägesbedömningar av möjligheter till arbete samt rekryteringssituationen inom olika yrken. Förutom en nulägesbild ges även en prognos över hur efterfrågan på arbetskraft inom respektive yrke förväntas utvecklas på fem års sikt. Yrkesbarometern uppdateras två gånger per år, varje vår och höst.<br />&emsp;&emsp;&emsp;Information kompletteras med annonser i Platsbanken nu och 2024 och löner hämtade från SCB (2023)."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_jobbmöjligheter}</p>", unsafe_allow_html=True)
@@ -741,9 +746,13 @@ def post_selected_occupation(id_occupation):
             else:
                 st.subheader(f"Närliggande yrken - {occupation_group}")
 
+            text_information_närliggande_yrken = f"I vänstra kolumnen återfinns yrken som både är vanliga yrkesväxlingar och där det finns annonslikheter. I den högra kolumnen visas yrken där det finns annonslikheter. Antal annonser som visas knyts till den regionala avgränsningen under Jobbmöjligheter ({selected_region})."
+
+            st.markdown(f"<p style='font-size:12px;'>{text_information_närliggande_yrken}</p>", unsafe_allow_html=True)
+
             col1, col2 = st.columns(2)
 
-            headline_1 = "<strong>Annonsöverlapp och vanlig yrkesväxling</strong>"
+            headline_1 = "<strong>Vanlig yrkesväxling och annonsöverlapp</strong>"
             headline_2 = "<strong>Annonsöverlapp</strong>"
 
             similar_1, similar_2 = create_similar_occupations(ssyk_code, selected_region_id)
