@@ -57,6 +57,8 @@ def initiate_session_state():
         st.session_state.municipality_id_namn = import_data("kommun_id_namn.json")
     if "occupation_id_dk_preflabel" not in st.session_state:
         st.session_state.occupation_id_dk_preflabel = import_data("occupation_id_dk_preflabel.json")
+    if "occupation_id_no_preflabel" not in st.session_state:
+        st.session_state.occupation_id_no_preflabel = import_data("occupation_id_no_preflabel.json")   
     if "adwords_occupation" not in st.session_state:
         st.session_state.adwords_occupation = {}
     if "credentials" not in st.session_state:
@@ -497,9 +499,26 @@ def create_dk_link(dk_names):
         alla_dk_names.append(d)
     alla_dk_url_string = ";".join(alla_dk_names)
     alla_dk_string =  " + ".join(dk_names)
-    dk_string = f"<p style='font-size:16px;'><br /><strong>Nedanför finns en länk till danska annonser</strong><br />Relaterade danska yrken är: {alla_dk_string}</p>"
+    dk_string = f"<p style='font-size:16px;'><br /><strong>Danska annonser</strong><br />Relaterade danska yrken är: {alla_dk_string}</p>"
     url = f"https://job.jobnet.dk/CV/FindWork?Offset=0&SortValue=BestMatch&Region=Hovedstaden%2520og%2520Bornholm&Occupations={alla_dk_url_string}"
     return url, dk_string
+
+def create_no_link(no_names):
+    alla_no_names = []
+    to_convert = {
+        r"\(": "%28",
+        r"\)": "%29",
+        " ": "+",
+        "/": "%2F"}
+    for d in no_names:
+        for key, value in to_convert.items():
+            d = re.sub(key, value, d)
+        alla_no_names.append(d)
+    alla_no_url_string = "&q=".join(alla_no_names)
+    alla_no_string =  " + ".join(no_names)
+    no_string = f"<p style='font-size:16px;'><br /><strong>Norska annonser</strong><br />Relaterade norska yrken är: {alla_no_string}</p>"
+    url = f"https://arbeidsplassen.nav.no/stillinger?q={alla_no_url_string}&v=5&county=OSLO"
+    return url, no_string
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -661,14 +680,29 @@ def post_selected_occupation(id_occupation):
 
         st.link_button(f"Platsbanken - {occupation_group} - {st.session_state.selected_region}", link, icon = ":material/link:")
 
-        if st.session_state.selected_region == "Skåne län":
+        show_nordic = st.toggle(
+            ":small[Visa länkar till nordiska annonser]",
+            key = "show_nordic")
+
+        g, h = st.columns(2)
+        i, j = st.columns(2)
+
+        if show_nordic:
             dk_preflabels = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
             if dk_preflabels:
-                #Liten rubrik typ Danska annonser
                 dk_link, dk_string = create_dk_link(dk_preflabels)
-                st.markdown(dk_string, unsafe_allow_html = True)
+                with g:
+                    st.markdown(dk_string, unsafe_allow_html = True)
+                with i:
+                    st.link_button(f"Jobnet.dk - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
 
-                st.link_button(f"Jobnet.dk - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
+            no_preflabels = st.session_state.occupation_id_no_preflabel.get(id_occupation)
+            if no_preflabels:
+                no_link, no_string = create_no_link(no_preflabels)
+                with h:
+                    st.markdown(no_string, unsafe_allow_html = True)
+                with j:
+                    st.link_button(f"Nav.no - Oslo", no_link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
 
