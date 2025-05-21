@@ -11,9 +11,6 @@ from google.cloud import storage
 from google.oauth2 import service_account
 from aub_susa import import_aub_from_susa
 
-#Ta bort name_similar_f som inte längre används
-#Se om det finns något att göra angående yrkesutbildningar och ssyk4
-
 @st.cache_data
 def import_data(filename):
     with open(filename) as file:
@@ -335,9 +332,7 @@ def get_ads(occupation, location):
             ads[1] = ads_selected_location_historical
     return ads
 
-def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link):
-    överlapp_popover_dict = {0: "\U000025D4", 0.5: "\U000025D1", 1: "\U000025D5"}
-    name_similar_f = f"{namn} {överlapp_popover_dict.get(överlappningsgrad, '')}"
+def render_job_info_html(namn, överlappningsgrad, prognos, annonser, link):
     överlapp_dict = {0: 25, 0.5: 50, 1: 75}
     fyllnadsnivå = överlapp_dict.get(överlappningsgrad, 0)
     fyllnadsgrad = fyllnadsnivå / 100 * 360
@@ -347,9 +342,6 @@ def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link)
     background: conic-gradient(black 0deg {fyllnadsgrad}deg, white {fyllnadsgrad}deg 360deg);
     border: 1px solid #666; margin-left: 6px; vertical-align: middle; position: relative; top: -1px;"></span>
     '''
-
-    scb_text = " (SCB)" if scb else ""
-    name_similar_f = f"{name_similar_f}{scb_text}"
 
     överlappning_html = f'&emsp;Annonsöverlapp närliggande yrke {överlappningscirkel}<br>'
 
@@ -391,7 +383,7 @@ def render_job_info_html(namn, överlappningsgrad, scb, prognos, annonser, link)
         {second_row_html}
     </div>
     """
-    return full_html, name_similar_f
+    return full_html
 
 def create_similar_occupations(ssyk_source, region_id):
     similar_1 = {}
@@ -403,12 +395,9 @@ def create_similar_occupations(ssyk_source, region_id):
         similar_description = info_similar["description"]
         similar_group_id = info_similar["occupation_group_id"]
 
-        labour_flow = False
         occupation_group = info_similar["occupation_group"]
         ssyk_similar = occupation_group[0:4]
         labour_flow_ssyk = st.session_state.labour_flow.get(ssyk_source)
-        if ssyk_similar in labour_flow_ssyk:
-            labour_flow = True
 
         if info_similar["barometer_id"]:
             occupation_forecast = st.session_state.forecast.get(info_similar["barometer_id"])
@@ -421,8 +410,8 @@ def create_similar_occupations(ssyk_source, region_id):
 
         ads = get_ads(similar_group_id, region_id)
 
-        similar_string, name_similar_f = render_job_info_html(
-            name_similar, v, labour_flow, regional_forecast, ads, create_regional_link(similar_group_id, region_id))
+        similar_string = render_job_info_html(
+            name_similar, v, regional_forecast, ads, create_regional_link(similar_group_id, region_id))
 
         if info_similar["esco_description"] == True:
             description_string = f"<p style='font-size:16px;'><em>Beskrivning hämtad från relaterat ESCO-yrke.</em> {similar_description}</p>"
@@ -431,10 +420,10 @@ def create_similar_occupations(ssyk_source, region_id):
             description_string = f"<p style='font-size:16px;'>{similar_description}</p>"
 
         if ssyk_similar in labour_flow_ssyk:
-            similar_1[name_similar_f] = [k, v, description_string, similar_string, name_similar]
+            similar_1[k] = [k, v, description_string, similar_string, name_similar]
 
         else:
-            similar_2[name_similar_f] = [k, v, description_string, similar_string, name_similar]
+            similar_2[k] = [k, v, description_string, similar_string, name_similar]
 
     sorted_similar_1 = {k:v for k,v in sorted(similar_1.items(), key = lambda item: item[0])}
     sorted_similar_2 = {k:v for k,v in sorted(similar_2.items(), key = lambda item: item[0])}
@@ -493,16 +482,21 @@ def skapa_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap):
     venn = create_venn(name_choosen, name_similar, adwords_similar, degree_of_overlap)
     return venn
 
-def create_dk_link(dk_name):
+def create_dk_link(dk_names):
+    alla_dk_names = []
     to_convert = {
         "ø": "%25C3%25B8",
         "æ": "%25C3%25A6",
         "å": "%25C3%25A5",
         " ": "%2520"}
-    for key, value in to_convert.items():
-        dk_name = re.sub(key, value, dk_name)
-    url = f"https://job.jobnet.dk/CV/FindWork?Offset=0&SortValue=BestMatch&Region=Hovedstaden%2520og%2520Bornholm&SearchString={dk_name}&SearchWithSimilarOccupations=true"
-    return url
+    for d in dk_names:
+        for key, value in to_convert.items():
+            d = re.sub(key, value, d)
+        alla_dk_names.append(d)
+    alla_dk_url_string = ";".join(alla_dk_names)
+    alla_dk_string =  "; ".join(dk_names)
+    url = f"https://job.jobnet.dk/CV/FindWork?Offset=0&SortValue=BestMatch&Region=Hovedstaden%2520og%2520Bornholm&Occupations={alla_dk_url_string}"
+    return url, alla_dk_string
 
 def post_selected_occupation(id_occupation):
     info = st.session_state.occupationdata.get(id_occupation)
@@ -637,6 +631,10 @@ def post_selected_occupation(id_occupation):
         with a:
             c, d, e = st.columns(3)
 
+        #index_förvald_region = valid_regions.index("Skåne län")
+        # if not index_förvald_region:
+        #     index_förvald_region = None
+
         selected_region = b.selectbox(
         "Regional avgränsning", (valid_regions), index = None)
 
@@ -660,13 +658,13 @@ def post_selected_occupation(id_occupation):
         st.link_button(f"Platsbanken - {occupation_group} - {selected_region}", link, icon = ":material/link:")
 
         if selected_region == "Skåne län":
-            st.write("")
-            st.write("Nedan finns en länk till danska annonser. Relaterat danskt yrke är inte kvalitetssäkrat och fungerar bara ibland.")
+            dk_preflabels = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
+            if dk_preflabels:
+                dk_link, dk_names = create_dk_link(dk_preflabels)
+                st.write("")
+                st.write(f"Nedan finns en länk till danska annonser. Relaterade danska yrken är: {dk_names}.")
 
-            dk_preflabel = st.session_state.occupation_id_dk_preflabel.get(id_occupation)
-            if dk_preflabel:
-                dk_link = create_dk_link(dk_preflabel)
-                st.link_button(f"Jobnet.dk - {dk_preflabel} - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
+                st.link_button(f"Jobnet.dk - Köpenhamn och Bornholm", dk_link, icon = ":material/link:")
 
         st.subheader(f"Lön - {occupation_group}")
 
