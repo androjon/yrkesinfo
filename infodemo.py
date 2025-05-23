@@ -9,7 +9,6 @@ from wordcloud import WordCloud
 import datetime
 from google.cloud import storage
 from google.oauth2 import service_account
-from aub_susa import import_aub_from_susa
 
 @st.cache_data
 def import_data(filename):
@@ -45,8 +44,8 @@ def initiate_session_state():
         st.session_state.forecast = import_data("barometer_regional.json")
     if "ssyk_salary" not in st.session_state:
         st.session_state.ssyk_salary = import_data("ssyk_salary.json")
-    if "aub_data" not in st.session_state:
-        st.session_state.aub_data = import_aub_from_susa()
+    if "ssyk_utbildningar" not in st.session_state:
+        st.session_state.ssyk_utbildningar = import_data("utbildningsdata.json")
     if "regions" not in st.session_state:
         st.session_state.regions = import_data("region_name_id.json")
     if "locations_id" not in st.session_state:
@@ -250,11 +249,15 @@ def create_string_educational_background(educations):
 def create_educational_string(data):
     strings = []
     for s in data:
+        if not "beskrivning" in s:
+            beskrivning = "Ingen utbildningsbeskrivning tillgänglig."
+        else:
+            beskrivning = s["beskrivning"]
         url = s["url"]
         educational_name = s["utbildningsnamn"]
         city = s["ort"]
         link = f"<a href='{url}'>{educational_name}</a>"
-        hover_info = s["beskrivning"]
+        hover_info = beskrivning
         string = f"{city} - {link}"
         edu_string = f"<p style='font-size:16px;'>{string}</p>"
         strings.append([edu_string, hover_info])
@@ -527,7 +530,7 @@ def post_selected_occupation(id_occupation):
     occupation_group_id = info["occupation_group_id"]
     occupation_field = info["occupation_field"]
     ssyk_code = occupation_group[0:4]
-    aub = st.session_state.aub_data.get(ssyk_code)
+    utbildningar = st.session_state.ssyk_utbildningar.get(ssyk_code)
     
     field_string = f"{occupation_field} (yrkesområde)"
     group_string = f"{occupation_group} (yrkesgrupp)"
@@ -736,21 +739,34 @@ def post_selected_occupation(id_occupation):
             educational_backgrounds = info["education"]["educations"]
 
             if educational_group:
-                aub_string = f"<strong>Vanlig utbildningsbakgrund {educational_group}</strong><br />"    
-                st.markdown(f"<p style='font-size:24px;'>{aub_string}</p>", unsafe_allow_html=True) 
+                edu_string = f"<strong>Vanlig utbildningsbakgrund {educational_group}</strong><br />"    
+                st.markdown(f"<p style='font-size:24px;'>{edu_string}</p>", unsafe_allow_html=True) 
                 educational_string = create_string_educational_background(educational_backgrounds)
                 st.markdown(educational_string, unsafe_allow_html = True)
         else:
             st.write("Ingen data tillgänglig")
 
-        if aub:
-            aub_string = f"<strong>Arbetsmarknadsutbildning {occupation_group}</strong><br />"    
-            st.markdown(f"<p style='font-size:24px;'>{aub_string}</p>", unsafe_allow_html=True) 
-            educational_string = create_educational_string(aub)
-            for e in educational_string:
-                st.markdown(e[0], unsafe_allow_html = True, help = e[1])
+        if utbildningar:
+            utbildningstyper = {}
+            for u in utbildningar:
+                if u["utbildningstyp"] not in utbildningstyper:
+                    utbildningstyper[u["utbildningstyp"]] = []
+                utbildningstyper[u["utbildningstyp"]].append(u)
+            utbildningstyper = dict(sorted(utbildningstyper.items(), key = lambda x: x[0], reverse = False))
 
-        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp. Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav."
+            for key, value in utbildningstyper.items():
+                if key == "aub":
+                    key = "arbetsmarknadsutbildning"
+                utbildningstyp = key.capitalize()
+                educational_string = create_educational_string(value)
+
+                edu_type_string = f"<strong>{utbildningstyp}</strong><br />"    
+                st.markdown(f"<p style='font-size:24px;'>{edu_type_string}</p>", unsafe_allow_html=True) 
+
+                for e in educational_string:
+                    st.markdown(e[0], unsafe_allow_html = True, help = e[1])
+
+        text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp.<br />Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Information om andra utbildningar är framräknade utifrån utbildninsnamn och taxonomin genom strängmatchning och JobAd Enrichments tillsammans med berikade historiska annonser."
 
         st.write("---")
         st.markdown(f"<p style='font-size:12px;'>{text_dataunderlag_utbildning}</p>", unsafe_allow_html=True)
