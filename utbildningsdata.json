@@ -2921,14 +2921,6 @@
   ], 
   "2512": [
     {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "KHD - konsthantverk/design", 
-      "url": "http://grimslovsfolkhogskola.se/konsthantverk-design/khd", 
-      "region_id": "tF3y_MF9_h5G", 
-      "beskrivning": "En bred konstnärlig utbildning inom konsthantverk och formgivning. Utbildningen är för dig som vill prova på olika material, tekniker och uttryckssätt.&nbsp;", 
-      "ort": "Grimslöv"
-    }, 
-    {
       "utbildningstyp": "aub", 
       "utbildningsnamn": "IT Påbyggnad/Programmerare AI", 
       "beskrivning": "Syftet med utbildningen är att erbjuda påbyggnad- och vidareutbildning för personer med befintliga kunskaper inom programmering. Inriktningen programmerare syftar till att skapa förutsättningar att utveckla kunskaper och färdigheter i programmering och att utveckla IT-system, applikationer eller delar av system. Utbildningen täcker systemutveckling, Frontend utveckling, Backend programmering, fullstack och applikationsutveckling inom valt språk samt grunderna i Azure AI, vilket inkluderar AI-tjänster, maskininlärning, datahantering och avancerade AI-tillämpningar.Utbildningen kan ske både på distans och på plats.Yrkesutbildningen är på 36 veckor inklusive ett arbetsplatsförlagt lärande (APL) hos ett företag på 12 veckor", 
@@ -9351,16 +9343,6 @@
       "region_id": "MtbE_xWT_eMi", 
       "beskrivning": "Utbildningen &auml;r en yrkesinriktad profilkurs som omfattar tv&aring; terminer och g&ouml;rs&nbsp;tillsammans med organisationen Testa Mission. Deltagarna f&aring;r m&ouml;jlighet att l&auml;ra sig om vad missionsuppdraget inneb&auml;r.", 
       "ort": "Jönköping"
-    }
-  ], 
-  "2143": [
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "KHD - konsthantverk/design", 
-      "url": "http://grimslovsfolkhogskola.se/konsthantverk-design/khd", 
-      "region_id": "tF3y_MF9_h5G", 
-      "beskrivning": "En bred konstnärlig utbildning inom konsthantverk och formgivning. Utbildningen är för dig som vill prova på olika material, tekniker och uttryckssätt.&nbsp;", 
-      "ort": "Grimslöv"
     }
   ], 
   "7222": [
