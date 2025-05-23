@@ -739,7 +739,7 @@ def post_selected_occupation(id_occupation):
             educational_backgrounds = info["education"]["educations"]
 
             if educational_group:
-                edu_string = f"<strong>Vanlig utbildningsbakgrund {educational_group}</strong><br />"    
+                edu_string = f"<strong>Vanlig utbildningsbakgrund - {educational_group}</strong><br />"    
                 st.markdown(f"<p style='font-size:24px;'>{edu_string}</p>", unsafe_allow_html=True) 
                 educational_string = create_string_educational_background(educational_backgrounds)
                 st.markdown(educational_string, unsafe_allow_html = True)
@@ -747,6 +747,9 @@ def post_selected_occupation(id_occupation):
             st.write("Ingen data tillgänglig")
 
         if utbildningar:
+            possible_edu_string = f"<strong>Möjliga yrkesutbildningar - {occupation_group}</strong><br />"    
+            st.markdown(f"<p style='font-size:24px;'>{possible_edu_string}</p>", unsafe_allow_html=True) 
+
             utbildningstyper = {}
             for u in utbildningar:
                 if u["utbildningstyp"] not in utbildningstyper:
@@ -761,7 +764,7 @@ def post_selected_occupation(id_occupation):
                 educational_string = create_educational_string(value)
 
                 edu_type_string = f"<strong>{utbildningstyp}</strong><br />"    
-                st.markdown(f"<p style='font-size:24px;'>{edu_type_string}</p>", unsafe_allow_html=True) 
+                st.markdown(f"<p style='font-size:20px;'>{edu_type_string}</p>", unsafe_allow_html=True) 
 
                 for e in educational_string:
                     st.markdown(e[0], unsafe_allow_html = True, help = e[1])
