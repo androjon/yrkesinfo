@@ -1968,14 +1968,6 @@
       "ort": "Bromma"
     }, 
     {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Turism & Äventyr - Yrkesutbildning", 
-      "url": "https://www.grimslovsfolkhogskola.se/turism/turism-aventyr/", 
-      "region_id": "tF3y_MF9_h5G", 
-      "beskrivning": "Vill du arbeta som reseledare eller &auml;ventyrsguide? Eller vill du producera resor och events inom turismbranschen?", 
-      "ort": "Grimslöv"
-    }, 
-    {
       "utbildningstyp": "nationell yrkesutbildning", 
       "utbildningsnamn": "Installationselektriker", 
       "url": "https://nercia.se/", 
@@ -2004,22 +1996,6 @@
       "url": "https://nercia.se/", 
       "region_id": "CifL_Rzy_Mku", 
       "ort": "Kista"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Yrkesutbildning i konstnärligt arbete", 
-      "url": "https://www.sunderbyfolkhogskola.se/kurser/yrkesutbildning-i-konstnarligt-arbete/", 
-      "region_id": "9hXe_F4g_eTG", 
-      "beskrivning": "&Ouml;ppet f&ouml;r sen ans&ouml;kan/reservplats prelimin&auml;rt t.o.m. 10 augusti 2025. Obs! Ans&ouml;kan kan st&auml;nga tidigare, v&auml;nta inte med att ans&ouml;ka.", 
-      "ort": "Luleå"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Yrkesutbildning i konstpedagogik", 
-      "url": "https://www.sunderbyfolkhogskola.se/kurser/yrkesutbildning-i-konstpedagogik/", 
-      "region_id": "9hXe_F4g_eTG", 
-      "beskrivning": "&Ouml;ppet f&ouml;r sen ans&ouml;kan/reservplats prelimin&auml;rt t.o.m. 10 augusti 2025. Obs! Ans&ouml;kan kan st&auml;nga tidigare, v&auml;nta inte med att ans&ouml;ka.", 
-      "ort": "Luleå"
     }, 
     {
       "utbildningstyp": "aub", 
@@ -2101,30 +2077,6 @@
       "ort": "Trollhättan"
     }, 
     {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Fotografi - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildning/vara-utbildningar/konst-design/fotografi/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "Fotoutbildningen&nbsp;är inriktad på konstnärligt och gestaltande fotografi, och riktar sig till dig som vill utveckla din kreativitet och ditt konstnärliga formspråk såväl som dina tekniska kunskaper.", 
-      "ort": "Vellinge"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Fria förberedande konstlinjen - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildning/vara-utbildningar/konst-design/fria-forberedande-konstlinjen/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "Fria förberedande konstlinjen består&nbsp;av&nbsp;ett första basår&nbsp;inom måleri, skulptur, teckning och video samt&nbsp;ett andra påbyggnadsår&nbsp;för dig som vill&nbsp;fördjupa dig ytterligare.", 
-      "ort": "Vellinge"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Konstgrafiklinjen - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildningar/konst-design/grafiken/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "På Konstgrafiklinjen har vi fokus på grafiska tekniker och uttrycket i den konstnärliga bilden. Du får arbeta med de flesta grafiska teknikerna, när vi går på djupet med olika material och metoder.", 
-      "ort": "Vellinge"
-    }, 
-    {
       "utbildningstyp": "aub", 
       "utbildningsnamn": "Elteknik: Larm- och säkerhetstekniker", 
       "beskrivning": "Larm- och säkerhetstekniker arbetar med att montera brandlarm, inbrottslarm, kamerabevaknings- och passersystem samt annan säkerhetsutrustning. I arbetet ingår att installera, driftsätta, programmera och utföra servicearbeten i systemen. Larm- och säkerhetsteknikern utbildar också de som ska använda systemen. Pedagogisk förmåga och servicekänsla är därmed viktigt i arbetet.Deltagaren ska efter genomförd utbildning och vald yrkesinriktning uppfylla branschens krav på kunskap för att vara anställningsbar.Utbildningen innehåller både teoretiska och praktiska moment. Undervisningen sker i kombination av lärarledd undervisning, självstudier, gruppuppgifter, praktiska övningar samt arbetsplatsförlagt lärande.Efter utbildning med godkänt i alla kurser är man anställningsbar som elektriker inom många branscher/kollektivavtal.Utbildningen är upp till 54 veckor lång inklusive arbetsplatsförlagt lärande (APL) på 8 veckor hos ett företag.Utbildningen är på heltid 8 timmar om dagen alla dagar utom helgdagar.För att delta i utbildningen krävs att man har genomfört Elteknik; Test och kartläggning (ID 127552).", 
@@ -2191,14 +2143,6 @@
       "ort": "Bromma"
     }, 
     {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Turism & Äventyr - Yrkesutbildning", 
-      "url": "https://www.grimslovsfolkhogskola.se/turism/turism-aventyr/", 
-      "region_id": "tF3y_MF9_h5G", 
-      "beskrivning": "Vill du arbeta som reseledare eller &auml;ventyrsguide? Eller vill du producera resor och events inom turismbranschen?", 
-      "ort": "Grimslöv"
-    }, 
-    {
       "utbildningstyp": "aub", 
       "utbildningsnamn": "Byggnadsmålare Nord", 
       "beskrivning": "Utbildning med inriktning Byggnadsmålare.Utbildningen leder till att bli anställningsbar som lärling inom målningsarbete och uppfyller MYN:s krav för lärlingsbok. Utbildningstid är upp till 66 veckor beroende på förkunskaper.", 
@@ -2212,22 +2156,6 @@
       "url": "https://astar.se/skola/lulea/", 
       "region_id": "9hXe_F4g_eTG", 
       "beskrivning": "Chansen att få ett arbete efter avslutad utbildning ökar om du har körkort.", 
-      "ort": "Luleå"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Yrkesutbildning i konstnärligt arbete", 
-      "url": "https://www.sunderbyfolkhogskola.se/kurser/yrkesutbildning-i-konstnarligt-arbete/", 
-      "region_id": "9hXe_F4g_eTG", 
-      "beskrivning": "&Ouml;ppet f&ouml;r sen ans&ouml;kan/reservplats prelimin&auml;rt t.o.m. 10 augusti 2025. Obs! Ans&ouml;kan kan st&auml;nga tidigare, v&auml;nta inte med att ans&ouml;ka.", 
-      "ort": "Luleå"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Yrkesutbildning i konstpedagogik", 
-      "url": "https://www.sunderbyfolkhogskola.se/kurser/yrkesutbildning-i-konstpedagogik/", 
-      "region_id": "9hXe_F4g_eTG", 
-      "beskrivning": "&Ouml;ppet f&ouml;r sen ans&ouml;kan/reservplats prelimin&auml;rt t.o.m. 10 augusti 2025. Obs! Ans&ouml;kan kan st&auml;nga tidigare, v&auml;nta inte med att ans&ouml;ka.", 
       "ort": "Luleå"
     }, 
     {
@@ -2261,30 +2189,6 @@
       "url": "https://arbetsformedlingen.se/for-arbetssokande/extra-stod/stod-a-o/arbetsmarknadsutbildning/hitta-arbetsmarknadsutbildning/yrkesomraden/aktiviteter/aktivitet/125577_10070102_320524", 
       "region_id": "zdoY_6u5_Krt", 
       "ort": "Säve"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Fotografi - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildning/vara-utbildningar/konst-design/fotografi/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "Fotoutbildningen&nbsp;är inriktad på konstnärligt och gestaltande fotografi, och riktar sig till dig som vill utveckla din kreativitet och ditt konstnärliga formspråk såväl som dina tekniska kunskaper.", 
-      "ort": "Vellinge"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Fria förberedande konstlinjen - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildning/vara-utbildningar/konst-design/fria-forberedande-konstlinjen/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "Fria förberedande konstlinjen består&nbsp;av&nbsp;ett första basår&nbsp;inom måleri, skulptur, teckning och video samt&nbsp;ett andra påbyggnadsår&nbsp;för dig som vill&nbsp;fördjupa dig ytterligare.", 
-      "ort": "Vellinge"
-    }, 
-    {
-      "utbildningstyp": "folkhögskola", 
-      "utbildningsnamn": "Konstgrafiklinjen - Yrkesutbildning", 
-      "url": "https://www.ostragreviefolkhogskola.com/utbildningar/konst-design/grafiken/", 
-      "region_id": "CaRE_1nn_cSU", 
-      "beskrivning": "På Konstgrafiklinjen har vi fokus på grafiska tekniker och uttrycket i den konstnärliga bilden. Du får arbeta med de flesta grafiska teknikerna, när vi går på djupet med olika material och metoder.", 
-      "ort": "Vellinge"
     }, 
     {
       "utbildningstyp": "aub", 
