@@ -587,7 +587,7 @@ def post_selected_occupation(id_occupation):
 
         with col1:
             for c in skill_string:
-                st.markdown(c[0], unsafe_allow_html = True, help = c[1])
+                st.markdown(c[0], unsafe_allow_html = True)
 
         with col2:
             if info["wordcloud_id"]:
@@ -767,7 +767,7 @@ def post_selected_occupation(id_occupation):
                 st.markdown(f"<p style='font-size:20px;'>{edu_type_string}</p>", unsafe_allow_html=True) 
 
                 for e in educational_string:
-                    st.markdown(e[0], unsafe_allow_html = True, help = e[1])
+                    st.markdown(e[0], unsafe_allow_html = True)
 
         text_dataunderlag_utbildning = "<strong>Dataunderlag</strong><br />Vanlig utbildningsbakgrund kommer från Tillväxtverkets Regionala matchningsindikatorer. Notera att grupperingen ibland sker på en högre nivå än yrkesgrupp.<br />Information om Arbetsmarknadsutbildningar är hämtade från Skolverkets SUSA-nav. Information om andra utbildningar är framräknade utifrån utbildninsnamn och taxonomin genom strängmatchning och JobAd Enrichments tillsammans med berikade historiska annonser."
 
